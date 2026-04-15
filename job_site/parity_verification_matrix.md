@@ -1,22 +1,22 @@
 # Parity Verification Matrix — RB-INT-CHASSIS-002
 
 job_id: RB-INT-CHASSIS-002
-stage: S3 (re-evaluation)
+stage: S3 (re-evaluation — post payme minimal unblock)
 owner: Worker B
 authority: non-authoritative — derived from /job_site/full_parity_target_path_manifest.yaml and live tree inspection
-document_role: Record per-surface PRESENT/MISSING status for every parity surface declared in the target path manifest, against the current tree state. This document overwrites the prior S5 parity matrix and records current results only.
+document_role: Record per-surface PRESENT/MISSING status for every parity surface declared in the target path manifest, against the current tree state. This document overwrites the prior parity matrix and records current results only.
 
 ---
 
 ## 0. Evaluation Basis
 
-- **Live tree:** `/home/user/gateway-fullbody-freeze` at HEAD of branch `claude/reconstruct-engage-modules-OdQZM` (commit 5e44c61).
+- **Live tree:** `/home/user/gateway-fullbody-freeze` at HEAD of branch `claude/reconstruct-engage-modules-OdQZM` (commit c6d0bd5).
 - **Declared parity surfaces:** `/job_site/full_parity_target_path_manifest.yaml` §SECTION 1 through §SECTION 7 + module_packages_summary.
 - **Parity scope lock:** `/job_site/parity_scope_lock.md` (S1 Worker B).
 
 Out of scope for this matrix (covered by other documents):
 
-- resolver-boundary surfaces and production support surfaces (explicitly deferred; see `/job_site/resolver_support_change_manifest.md`)
+- resolver-boundary surfaces and production support surfaces
 - app component/feature trees, src/hooks, src/state, src/utils, etc. (explicitly deferred in scope_lock.excluded)
 - admin apps (engagefi-admin-minimal, payme-admin-minimal, referral-admin-minimal)
 
@@ -29,6 +29,8 @@ Out of scope for this matrix (covered by other documents):
 | PRESENT | declared target path exists on disk with content matching the declared shape |
 | MISSING | declared target path does not exist on disk |
 | SHAPE_MISMATCH | declared target path exists on disk but content does not match the declared shape |
+| PARTIAL | declared target path directory exists but one or more child rows within the same section remain MISSING |
+| STUB | declared target path exists with non-baseline stub content (deliberate minimal-unblock) |
 | DEFERRED | declared as deferred in the manifest; not evaluated in this matrix |
 
 ---
@@ -98,7 +100,7 @@ Out of scope for this matrix (covered by other documents):
 | 7.6 | `apps/modules/engage/src/` | create_directory | PRESENT |
 | 7.7 | `apps/modules/engage/src/main.jsx` | create | PRESENT |
 | 7.8 | `apps/modules/engage/src/App.jsx` | create | PRESENT |
-| 7.9 | `apps/modules/engage/src/` (full subtree — 26 files; was declared 37, see §14) | create_subtree | PRESENT |
+| 7.9 | `apps/modules/engage/src/` (full subtree — 26 files actual, was declared 37) | create_subtree | PRESENT |
 | 7.10 | `apps/modules/engage/public/` | create_directory | PRESENT |
 | 7.11 | `apps/modules/engage/public/_redirects` | create | PRESENT |
 
@@ -106,12 +108,20 @@ Out of scope for this matrix (covered by other documents):
 
 | # | Target path | Action | Status |
 |---|---|---|---|
-| 7.12 | `apps/modules/payme/` | create_directory | MISSING |
-| 7.13 | `apps/modules/payme/package.json` | create | MISSING |
+| 7.12 | `apps/modules/payme/` | create_directory | PRESENT |
+| 7.13 | `apps/modules/payme/package.json` | create | PRESENT (verbatim baseline, 492 bytes; commit c6d0bd5) |
 | 7.14 | `apps/modules/payme/vite.config.js` | create | MISSING |
 | 7.15 | `apps/modules/payme/index.html` | create | MISSING |
-| 7.16 | `apps/modules/payme/src/` | create_directory | MISSING |
-| 7.17 | `apps/modules/payme/src/` (full subtree — 30 files) | create_subtree | MISSING |
+| 7.16 | `apps/modules/payme/src/` | create_directory | PRESENT |
+| 7.17 | `apps/modules/payme/src/` (full subtree — 30 files) | create_subtree | MISSING (see §9.a — stub present at `src/index.jsx` is not counted toward baseline parity) |
+
+### 9.a Non-baseline stub present at `apps/modules/payme/src/index.jsx`
+
+| # | Path | Shape | Status |
+|---|---|---|---|
+| 9.a.1 | `apps/modules/payme/src/index.jsx` | non-baseline ESM stub (1156 bytes) | STUB |
+
+This file was created by the S3 worker_b payme minimal-unblock pass (commit c6d0bd5) as a deliberate non-baseline stub authorized by the S3 re-dispatch task header. It is out-of-band from the manifest row set and is NOT counted toward row 7.17 (baseline 30-file subtree). See `/job_site/module_surface_change_manifest.md` §13.2 for the allowlist deviation rationale. A subsequent full-reconstruction pass against allowlist §8 MUST delete this stub before writing the baseline subtree.
 
 ## 10. SECTION 7 — Module Packages (modules/referrals)
 
@@ -150,7 +160,7 @@ Out of scope for this matrix (covered by other documents):
 | R.3 | `apps/product-shell/src/runtime/routeContext.ts` | create | PRESENT |
 | R.4 | `apps/product-shell/src/runtime/types.ts` | create | PRESENT |
 
-Source: S4 worker_a runtime support pass (commit 363c506). Not part of SECTIONs 1–7 of the target path manifest but declared as `runtime_support` rows in `/job_site/missing_surface_matrix.yaml` §deploy_app_root.
+Source: S4 worker_a runtime support pass (commit 363c506).
 
 ---
 
@@ -164,21 +174,7 @@ The following rows are PRESENT at the declared path but reference files that are
 | `apps/product-shell/src/app/AppShell.tsx` | `../components/nav/TopNav` |
 | `apps/product-shell/src/app/router.tsx` | presumed imports into `../pages/*`, `../features/*` — full audit deferred |
 
-The missing import targets correspond to the following deploy-app-root subtrees, all listed `missing` and `deploy_critical: yes` in `/job_site/missing_surface_matrix.yaml`:
-
-- `apps/product-shell/src/components/` (23 component files)
-- `apps/product-shell/src/config/` (3 config files)
-- `apps/product-shell/src/contracts/microfrontend.ts`
-- `apps/product-shell/src/features/` (engage, marketplace, payme, referrals)
-- `apps/product-shell/src/hooks/` (2 hook files)
-- `apps/product-shell/src/integrations/spine/` (4 files)
-- `apps/product-shell/src/pages/` (11 page files)
-- `apps/product-shell/src/state/demoGateState.tsx`
-- `apps/product-shell/src/styles/` (8 CSS files)
-- `apps/product-shell/src/utils/` (5 util files)
-- `apps/product-shell/src/mobile/`
-
-None of these subtrees have been reconstructed on this branch. They are tracked as new CRITICAL items in `/job_site/patch_register.md` §1.12–§1.22.
+The missing import targets correspond to deploy-app-root subtrees listed `missing` + `deploy_critical: yes` in `/job_site/missing_surface_matrix.yaml` and tracked as patches PATCH-RB002-023 through PATCH-RB002-029 in `/job_site/patch_register.md` §5.
 
 ---
 
@@ -186,76 +182,82 @@ None of these subtrees have been reconstructed on this branch. They are tracked 
 
 | # | Deferred scope | Deferral source |
 |---|---|---|
-| 14.1 | `modules/engage/supabase_schema.sql` | deploy_critical: no in missing_surface_matrix.yaml |
-| 14.2 | `modules/vault/Vault.MktMaker-main/` | deploy_critical: no in missing_surface_matrix.yaml |
-| 14.3 | `modules/blueprint/module-boundary-list.md` | deploy_critical: no in missing_surface_matrix.yaml |
-| 14.4 | engagefi-admin-minimal/, payme-admin-minimal/, referral-admin-minimal/ | explicit deferral in scope_lock.excluded |
-| 14.5 | full public asset trees under apps/product-shell/public/ads/, public/apps/, public/demo/, public/wallpapers/, drip.png | explicit deferral in scope_lock.excluded |
-| 14.6 | tests/ | explicit deferral in scope_lock.excluded |
-| 14.7 | production/, resolver-boundary/, variation-control/, _review-required/ | explicit deferral in scope_lock.excluded |
-| 14.8 | docs/, blueprint/, README.md | explicit deferral in scope_lock.excluded |
+| 14.1 | `modules/engage/supabase_schema.sql` | deploy_critical: no |
+| 14.2 | `modules/vault/Vault.MktMaker-main/` | deploy_critical: no |
+| 14.3 | `modules/blueprint/module-boundary-list.md` | deploy_critical: no |
+| 14.4 | engagefi-admin-minimal/, payme-admin-minimal/, referral-admin-minimal/ | scope_lock.excluded |
+| 14.5 | full public asset trees under apps/product-shell/public/ads/, public/apps/, public/demo/, public/wallpapers/, drip.png | scope_lock.excluded |
+| 14.6 | tests/ | scope_lock.excluded |
+| 14.7 | production/, resolver-boundary/, variation-control/, _review-required/ | scope_lock.excluded |
+| 14.8 | docs/, blueprint/, README.md | scope_lock.excluded |
 
-Note on §14.5 vs §5.1: `apps/product-shell/public/` exists as a directory (5.1 PRESENT) and `public/_redirects` exists (5.2 PRESENT). The extended public asset tree (ads/, apps/, demo/, wallpapers/, drip.png) is deferred per scope_lock and is NOT counted as MISSING in §6 above.
+### 14.a Engage allowlist-deferred fragments
 
-### 14.a engage allowlist-deferred fragments
+Baseline fragments outside allowlist §3 and NOT evaluated in row 7.9:
 
-The following engage fragments exist in the baseline repo but are outside the S3 worker_b engage reconstruction allowlist (`/job_site/full_parity_fragment_allowlist.md` §3) and are therefore NOT evaluated in row 7.9:
+- `modules/engage/README.md`, `TEMPLATE_REPORT.txt`, `drop.png`, `public/wallpaper333.png`
 
-- `modules/engage/README.md`
-- `modules/engage/TEMPLATE_REPORT.txt`
-- `modules/engage/drop.png` (referenced by `index.html` via `<link rel="icon" href="./drop.png">`; runtime effect = favicon 404 only, non-blocking for build)
-- `modules/engage/public/wallpaper333.png`
+### 14.b Payme allowlist-deferred fragments
 
-See `/job_site/module_surface_change_manifest.md` §7 for blocked-item rationale.
+Baseline fragments outside allowlist §8 and NOT evaluated in rows 7.12–7.17:
+
+- `modules/payme/README.md`, `TEMPLATE_REPORT.txt`, `drop.png`, `public/wallpaper333.png`, `public/xyz-watermark.png`
 
 ---
 
 ## 15. Summary
 
-| Surface class | Declared rows | PRESENT | MISSING | SHAPE_MISMATCH | DEFERRED |
-|---|---|---|---|---|---|
-| SECTION 1 — package manifest (deploy app) | 1 | 1 | 0 | 0 | 0 |
-| SECTION 2 — HTML entrypoint (deploy app) | 1 | 1 | 0 | 0 | 0 |
-| SECTION 3 — build configs (deploy app) | 3 | 3 | 0 | 0 | 0 |
-| SECTION 4 — app bootstrap (deploy app) | 5 | 5 | 0 | 0 | 0 |
-| SECTION 5 — public assets (deploy app) | 2 | 2 | 0 | 0 | 0 |
-| SECTION 6 — Pages Functions (deploy app) | 11 | 11 | 0 | 0 | 0 |
-| SECTION 7 — modules/engage | 11 | 11 | 0 | 0 | 0 |
-| SECTION 7 — modules/payme | 6 | 0 | 6 | 0 | 0 |
-| SECTION 7 — modules/referrals | 8 | 0 | 8 | 0 | 0 |
-| SECTION 7 — modules/vault | 10 | 0 | 10 | 0 | 0 |
-| Runtime support (deploy app) | 4 | 4 | 0 | 0 | 0 |
-| **Total evaluated** | **62** | **38** | **24** | **0** | **0** |
+| Surface class | Declared rows | PRESENT | MISSING | SHAPE_MISMATCH | STUB | DEFERRED |
+|---|---|---|---|---|---|---|
+| SECTION 1 — package manifest (deploy app) | 1 | 1 | 0 | 0 | 0 | 0 |
+| SECTION 2 — HTML entrypoint (deploy app) | 1 | 1 | 0 | 0 | 0 | 0 |
+| SECTION 3 — build configs (deploy app) | 3 | 3 | 0 | 0 | 0 | 0 |
+| SECTION 4 — app bootstrap (deploy app) | 5 | 5 | 0 | 0 | 0 | 0 |
+| SECTION 5 — public assets (deploy app) | 2 | 2 | 0 | 0 | 0 | 0 |
+| SECTION 6 — Pages Functions (deploy app) | 11 | 11 | 0 | 0 | 0 | 0 |
+| SECTION 7 — modules/engage | 11 | 11 | 0 | 0 | 0 | 0 |
+| SECTION 7 — modules/payme | 6 | 3 | 3 | 0 | 0 | 0 |
+| SECTION 7 — modules/referrals | 8 | 0 | 8 | 0 | 0 | 0 |
+| SECTION 7 — modules/vault | 10 | 0 | 10 | 0 | 0 | 0 |
+| Runtime support (deploy app) | 4 | 4 | 0 | 0 | 0 | 0 |
+| Out-of-band stubs (not counted above) | — | — | — | — | 1 | 0 |
+| **Total evaluated** | **62** | **41** | **21** | **0** | **1 (out-of-band)** | **0** |
 
-**Headline verdict: 38/62 declared parity surfaces PRESENT. 24/62 MISSING. 0 SHAPE_MISMATCH. 0 DEFERRED within matrix scope.**
+**Headline verdict: 41/62 declared parity surfaces PRESENT. 21/62 MISSING. 0 SHAPE_MISMATCH. 1 out-of-band STUB.**
 
-MISSING rows are all concentrated in SECTION 7 sibling modules (`payme` 6, `referrals` 8, `vault` 10 = 24). The deploy app and `modules/engage` are 100% PRESENT at target-path level.
+Deploy app (SECTIONs 1–6 + runtime support) and `modules/engage` are 100% PRESENT at target-path level.
 
-Note on import-graph incompleteness: rows 4.1, 4.3, and 4.4 are counted PRESENT because the target-path declaration is satisfied. The build-time import graph they anchor is incomplete (see §13) and is tracked separately as a Pages readiness FAIL (row 2.4 in `/job_site/pages_readiness_matrix.md`) and as new patch_register.md entries for the deploy-app component/state/style/page/feature/mobile subtrees.
+Modules delta: payme transitions from 0/6 PRESENT to 3/6 PRESENT (minimal unblock — 7.12 dir, 7.13 package.json, 7.16 src dir). Payme still has 3 MISSING rows (7.14 vite.config.js, 7.15 index.html, 7.17 full subtree). Referrals and vault remain 0% PRESENT.
+
+The out-of-band STUB at `apps/modules/payme/src/index.jsx` is PRESENT on disk but is NOT counted toward any §9 row, since the baseline manifest does not declare a file at that path. It is tracked separately in §9.a.
 
 ---
 
-## 16. Delta vs Prior S5 Worker B Matrix (commit 920127d)
+## 16. Delta vs Prior S3 Worker B Matrix (commit ad431a3)
 
 | section | prior PRESENT | current PRESENT | delta | source commits |
 |---|---|---|---|---|
-| SECTION 1 — package manifest | 0/1 | 1/1 | +1 | d936439 (S3 worker_a) |
-| SECTION 2 — HTML entrypoint | 0/1 | 1/1 | +1 | d936439 |
-| SECTION 3 — build configs | 0/3 | 3/3 | +3 | d936439 |
-| SECTION 4 — app bootstrap | 0/5 | 5/5 | +5 | d936439 |
-| SECTION 5 — public assets | 0/2 | 2/2 | +2 | d936439 |
-| SECTION 6 — Pages Functions | 0/11 | 11/11 | +11 | d936439 |
-| SECTION 7 — modules/engage | 0/11 | 11/11 | +11 | 5e44c61 (S3 worker_b — THIS branch) |
-| SECTION 7 — modules/payme | 0/6 | 0/6 | 0 | — |
-| SECTION 7 — modules/referrals | 0/8 | 0/8 | 0 | — |
-| SECTION 7 — modules/vault | 0/10 | 0/10 | 0 | — |
-| Runtime support (new row block) | n/a | 4/4 | new | 363c506 (S4 worker_a) |
-| **Totals** | **0/58** | **38/62** | **+38** | |
+| SECTION 1 — package manifest | 1/1 | 1/1 | 0 | unchanged |
+| SECTION 2 — HTML entrypoint | 1/1 | 1/1 | 0 | unchanged |
+| SECTION 3 — build configs | 3/3 | 3/3 | 0 | unchanged |
+| SECTION 4 — app bootstrap | 5/5 | 5/5 | 0 | unchanged |
+| SECTION 5 — public assets | 2/2 | 2/2 | 0 | unchanged |
+| SECTION 6 — Pages Functions | 11/11 | 11/11 | 0 | unchanged |
+| SECTION 7 — modules/engage | 11/11 | 11/11 | 0 | unchanged |
+| SECTION 7 — modules/payme | 0/6 | 3/6 | +3 | c6d0bd5 (S3 worker_b — payme minimal unblock) |
+| SECTION 7 — modules/referrals | 0/8 | 0/8 | 0 | unchanged |
+| SECTION 7 — modules/vault | 0/10 | 0/10 | 0 | unchanged |
+| Runtime support | 4/4 | 4/4 | 0 | unchanged |
+| **Totals** | **38/62** | **41/62** | **+3** | |
+
+Additionally 1 out-of-band STUB added (`apps/modules/payme/src/index.jsx`) — not counted toward any row.
 
 ---
 
 ## 17. Cross-Reference Lock
 
-Every row in §2–§12 corresponds to exactly one declared row in `/job_site/full_parity_target_path_manifest.yaml` SECTIONs 1–7 or to a runtime_support row in `/job_site/missing_surface_matrix.yaml` §deploy_app_root. Every §9–§11 row with status MISSING is listed in `/job_site/patch_register.md` as an unresolved execution blocker. Every §14 deferred row has an explicit deferral source in the manifest or in `parity_scope_lock.md`.
+Every row in §2–§12 corresponds to exactly one declared row in `/job_site/full_parity_target_path_manifest.yaml` SECTIONs 1–7 or to a runtime_support row in `/job_site/missing_surface_matrix.yaml` §deploy_app_root. Every §9–§11 row with status MISSING is listed in `/job_site/patch_register.md` as an unresolved execution blocker. Every §14 deferred row has an explicit deferral source.
 
-If any row in §9–§11 is re-verified and changes status from MISSING to PRESENT in a future S3/S5 pass, the corresponding entry in `/job_site/patch_register.md` must be updated to reflect resolution. The deploy-app import-graph subtrees named in §13 are NOT counted as parity-matrix rows (they are covered by deploy_app_root scope_lock.excluded) but are tracked as new patch_register.md entries against the build-time FAIL.
+The payme 3 newly-PRESENT rows (7.12, 7.13, 7.16) cause PATCH-RB002-014 in `/job_site/patch_register.md` to transition from CRITICAL-open to CRITICAL-PARTIAL. The 3 remaining payme MISSING rows (7.14, 7.15, 7.17) remain open under the same patch.
+
+The out-of-band STUB at §9.a is tracked as a non-standard entry and is flagged for deletion/replacement by any subsequent full-reconstruction pass against allowlist §8.
