@@ -602,3 +602,180 @@ is not constrained by that allowlist.
 - Scope lock is enforced — no file outside `apps/product-shell/src/pages/` was created, modified, or deleted in this append pass.
 - Every router.tsx direct page-import target is now present at the declared path.
 - `src/app/router.tsx` no longer has any direct missing import. Its remaining failure modes are documented in §12.7 and §12.8 and are unaffected by this pass.
+
+---
+
+## 13. Append — Nav Subtree Reconstruction Pass (S3 follow-up)
+
+job_id: RB-INT-CHASSIS-002
+stage: S3
+pass: deploy app nav reconstruction (`src/components/nav/` — `AppShell.tsx` direct dependency only)
+worker: worker_a
+branch: claude/rebuild-product-shell-KIQNp
+authority: record of the file-system change made under `apps/product-shell/src/components/nav/` to satisfy the missing `TopNav` import flagged by `/job_site/build_verification_results.md` §15.2 (corrected `npx vite build` re-run).
+
+### 13.1 Trigger
+
+The corrected S5 `npx vite build` probe (`/job_site/build_verification_results.md`
+§15.2) recorded that with `apps/product-shell` deps installed, vite config
+loaded cleanly and Rollup advanced to 32 modules transformed, then failed at:
+
+```
+Could not resolve "../components/nav/TopNav" from "src/app/AppShell.tsx"
+```
+
+`apps/product-shell/src/app/AppShell.tsx` (already present from §4 of this
+manifest) contains this single components-tree import:
+
+```
+import { TopNav } from "../components/nav/TopNav";
+```
+
+This append documents the reconstruction of exactly that one module (and
+any direct sibling it imports from within `src/components/nav/`). Per task
+dispatch, the cascade beyond `src/components/nav/` (into
+`src/components/layout/`, `src/components/admin/`, `src/components/gate/`,
+`src/components/integrations/`, `src/components/tenant/`, …) is **not**
+expanded by this pass.
+
+### 13.2 Scope Lock (enforced)
+
+Created exactly the single `AppShell.tsx`-direct components-tree module:
+
+- `apps/product-shell/src/components/nav/TopNav.tsx`
+
+TopNav's own import list is recorded in §13.6. It imports zero modules from
+inside `src/components/nav/`, so no additional files under that subtree
+were required by this pass. All other missing `src/components/*` subtrees
+(`layout/`, `admin/`, `gate/`, `integrations/`, `tenant/`) remain
+classified `missing` in `/job_site/missing_surface_matrix.yaml` and are
+untouched by this pass.
+
+### 13.3 Change Set Summary
+
+| metric | value |
+|---|---|
+| files created | 1 |
+| files modified | 0 |
+| files deleted | 0 |
+| directories created | 2 (`src/components/`, `src/components/nav/`) |
+| total bytes written | 1299 |
+| reconstruction method | minimal chassis-native stub (no baseline archive available; content authored against existing `src/styles/nav.css` class contract and `src/app/routes.ts` route table; see §13.7) |
+
+### 13.4 Directories Created
+
+- `apps/product-shell/src/components/`
+- `apps/product-shell/src/components/nav/`
+
+### 13.5 Files Created
+
+| target_path | bytes | action |
+|---|---|---|
+| apps/product-shell/src/components/nav/TopNav.tsx | 1299 | create (minimal chassis-native stub) |
+
+### 13.6 TopNav Direct Import List (verified no nav-subtree siblings)
+
+```
+import { NavLink, Link } from "react-router-dom";
+import { routes } from "../../app/routes";
+```
+
+| import specifier | resolves to | status |
+|---|---|---|
+| `react-router-dom` | `apps/product-shell/node_modules/react-router-dom/` (declared dep `^6.26.2`) | external, resolvable |
+| `../../app/routes` | `apps/product-shell/src/app/routes.ts` | present (§4 of this manifest) |
+
+TopNav imports zero modules from `src/components/nav/*` or from any other
+`src/components/*` subtree. No sibling file under `src/components/nav/`
+was required or created by this pass.
+
+### 13.7 Reconstruction Rationale (no baseline archive)
+
+- The baseline archive directory `/job_site/gateway-production-freeze/`
+  is empty at HEAD (contains only `.keep`); no byte-for-byte baseline copy
+  of `product-shell/src/components/nav/TopNav.tsx` is available on the
+  attached file system.
+- The minimal reconstruction uses only:
+  - class names already declared in `apps/product-shell/src/styles/nav.css`
+    (`topNav`, `topNavInner`, `brand`, `brandMark`, `brandText`,
+    `brandTitle`, `brandTitleDesktop`, `brandTitleMobile`, `brandSub`,
+    `brandSubDesktop`, `navLinks`, `navLink`, `navLink.active`,
+    `topNavRight`, `loginTextBtn`, `cartIconBtn`);
+  - the route table already declared in `apps/product-shell/src/app/routes.ts`
+    (iterated to render one `<NavLink>` per route);
+  - the public `react-router-dom` API (`Link`, `NavLink`).
+- The reconstruction introduces no new subtree imports, no new external
+  dependencies, and no new chassis surface. It satisfies the
+  `AppShell.tsx → ../components/nav/TopNav` direct-import edge without
+  touching any other module.
+- The baseline-faithful content (interactive brand title, cart dropdown,
+  wallet/login affordances, mobile menu toggle state) is not reconstructed
+  by this pass and is deferred to a later baseline-archive-anchored pass.
+  The minimal stub is sufficient for S5 `npx vite build` to advance past
+  the `components/nav/TopNav` failing edge.
+
+### 13.8 Verification Against AppShell.tsx Import
+
+Post-write `npx vite build` probe (from
+`/home/user/gateway-fullbody-freeze/apps/product-shell`, after
+`npm install`):
+
+- `✓ 32 modules transformed.` → continues past 32 (the prior failing point).
+- The error `Could not resolve "../components/nav/TopNav" from "src/app/AppShell.tsx"`
+  no longer occurs.
+- The build now fails one hop deeper, at:
+  `Could not resolve "../components/layout/PageShell" from "src/pages/HomePage.tsx"`
+  — confirming the nav import resolved and the failing edge has advanced
+  from `src/app/AppShell.tsx → ../components/nav/TopNav` to
+  `src/pages/HomePage.tsx → ../components/layout/PageShell`.
+
+### 13.9 Out-of-Scope (still deferred after this pass)
+
+Per the dispatch directive "Do not expand beyond nav subtree", the
+following baseline surfaces — known to be imported transitively by the
+11 reconstructed pages (§12.7) and by the prior-declared component tree
+inventory (baseline_inventory.md) — are NOT created by this pass and
+remain classified `missing`:
+
+- `apps/product-shell/src/components/layout/PageShell.tsx` (imported by all 11 pages)
+- `apps/product-shell/src/components/layout/WallpaperLayer.tsx`
+- `apps/product-shell/src/components/admin/AdminPanel.tsx` (imported by AdminPage, AccessTier3Page)
+- `apps/product-shell/src/components/gate/*` (RequireGate and siblings — currently commented out in `router.tsx`)
+- `apps/product-shell/src/components/integrations/ModuleFrame.tsx` (imported by EngagePage, PayMePage, ReferralsPage)
+- `apps/product-shell/src/components/tenant/ExclusiveContentRenderer.tsx`
+- `apps/product-shell/src/components/tenant/ExclusiveTileGrid.tsx`
+- `apps/product-shell/src/features/*` (payme, marketplace, referrals, engage)
+- `apps/product-shell/src/hooks/*`, `src/integrations/*`, `src/config/*`,
+  `src/contracts/*`, `src/utils/*`
+
+These subtrees will continue to fail S5 verification at the next
+module-graph layer until a subsequent rebuild pass closes them.
+
+### 13.10 Reference Conflict Status
+
+The §8.1 (`pages_deployment_spec.md` deploy root mismatch) and §8.2
+(RB-INT-CHASSIS-001 fragment allowlist) conflicts logged earlier in this
+manifest remain unresolved by this pass. The
+RB-INT-CHASSIS-002-specific `/job_site/full_parity_fragment_allowlist.md`
+§0 Pass Scope explicitly limits its allowlist to `modules/*` and explicitly
+excludes any `product-shell` app-root surface, so this pass is not
+constrained by that allowlist.
+
+### 13.11 Repo Mirror / Commit / Push Evidence
+
+| field | value |
+|---|---|
+| repo_mirror | yes — write made to working tree at `/home/user/gateway-fullbody-freeze/apps/product-shell/src/components/nav/TopNav.tsx` |
+| commit_required | yes |
+| push_required | yes |
+| branch | claude/rebuild-product-shell-KIQNp |
+| commit_hash | (recorded post-commit; see git log) |
+| pushed_to | origin/claude/rebuild-product-shell-KIQNp |
+
+### 13.12 Checksum Pointers for Foreman B
+
+- Exactly one file was created under `apps/product-shell/src/components/nav/`.
+- Scope lock is enforced — no file outside `apps/product-shell/src/components/nav/` was created, modified, or deleted in this append pass.
+- `src/app/AppShell.tsx → ../components/nav/TopNav` is now resolvable; the `src/app/AppShell.tsx` direct-import edge to `../components/nav/*` is closed.
+- The remaining cascade (`src/pages/* → ../components/layout/*` and siblings) is unchanged and is the next failing edge per §13.8.
+- Because no baseline archive is available on the attached file system, the file is a minimal chassis-native stub (§13.7) and NOT a byte-for-byte baseline copy. This divergence from §11/§12 reconstruction method is noted here for Foreman B adjudication.
