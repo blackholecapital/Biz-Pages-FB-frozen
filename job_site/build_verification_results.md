@@ -370,3 +370,18 @@ Interface adjudication.
   advanced from `src/main.tsx` to `src/app/router.tsx → ../pages/*` after
   the S3 asset reconstruction pass; remediation scope in §9 matches the
   remaining deferred work from S3 and S4.
+
+---
+
+## 12. Appended Install-Only Step (operator dispatch — install-only re-run)
+
+Task dispatch: run ONLY dependency installation from `apps/product-shell`.
+Build step NOT executed in this sub-run.
+
+| field | value |
+|---|---|
+| working directory | `/home/user/gateway-fullbody-freeze/apps/product-shell` |
+| command | `npm install --no-audit --no-fund` |
+| exit code | 0 |
+| run branch | `claude/rebuild-product-shell-KIQNp` |
+| build executed | no |
