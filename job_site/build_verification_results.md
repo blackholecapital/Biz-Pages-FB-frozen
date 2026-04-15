@@ -403,3 +403,22 @@ this sub-run.
 | primary error line | (none — step completed; engage `vite build` produced `../../public/apps/engage/{index.html,assets/index-*.css,assets/index-*.js}` and exited 0 with `✓ 5569 modules transformed`) |
 | run branch | `claude/rebuild-product-shell-KIQNp` |
 | product-shell vite build executed | no |
+
+---
+
+## 14. Appended vite-build-Only Step (operator dispatch — npx vite build re-run)
+
+Task dispatch: run ONLY `npx vite build` from `apps/product-shell`. No other
+commands executed (no `npm install`, no `npm run build:engage`).
+
+| field | value |
+|---|---|
+| working directory | `/home/user/gateway-fullbody-freeze/apps/product-shell` |
+| command | `npx vite build` |
+| exit code | 1 |
+| first error line | `Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'vite' imported from /home/user/gateway-fullbody-freeze/apps/product-shell/vite.config.ts.timestamp-*.mjs` |
+| precursor warnings | `[UNRESOLVED_IMPORT] Could not resolve 'vite' in vite.config.ts`; `[UNRESOLVED_IMPORT] Could not resolve '@vitejs/plugin-react' in vite.config.ts`; `failed to load config from /home/user/gateway-fullbody-freeze/apps/product-shell/vite.config.ts` |
+| npx cache note | `npm warn exec The following package was not found and will be installed: vite@8.0.8` — npx auto-fetched `vite@8.0.8` into its cache because `apps/product-shell/node_modules/` was absent at step start; the fetched global-cache vite could not load `vite.config.ts` because `@vitejs/plugin-react` (devDependency of `apps/product-shell`) is not installed and because `vite.config.ts` itself imports `vite` from the local package graph, not the npx cache. |
+| reached module graph transform | no — failure occurred at config-load time, before Rollup entered `src/` |
+| run branch | `claude/rebuild-product-shell-KIQNp` |
+| product-shell install executed | no (prerequisite was intentionally skipped per dispatch "Do not run any other commands") |
