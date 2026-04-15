@@ -26,6 +26,14 @@ import {
   REMOVE_MOUNT,
   isMountAuthorized as isRemoveMountAuthorized,
 } from "./remove.mount.js";
+import {
+  PAYME_ADMIN_MOUNT,
+  isMountAuthorized as isPaymeAdminMountAuthorized,
+} from "./payme-admin.mount.js";
+import {
+  REFERRAL_ADMIN_MOUNT,
+  isMountAuthorized as isReferralAdminMountAuthorized,
+} from "./referral-admin.mount.js";
 
 interface WebPublicMount {
   readonly label: string;
@@ -43,6 +51,16 @@ const WEB_PUBLIC_MOUNTS: readonly WebPublicMount[] = [
     label: "REMOVE_MOUNT",
     touchpoint_id: REMOVE_MOUNT.touchpoint_id,
     authorized: isRemoveMountAuthorized,
+  },
+  {
+    label: "PAYME_ADMIN_MOUNT",
+    touchpoint_id: PAYME_ADMIN_MOUNT.touchpoint_id,
+    authorized: isPaymeAdminMountAuthorized,
+  },
+  {
+    label: "REFERRAL_ADMIN_MOUNT",
+    touchpoint_id: REFERRAL_ADMIN_MOUNT.touchpoint_id,
+    authorized: isReferralAdminMountAuthorized,
   },
 ];
 

@@ -10,6 +10,9 @@ import {
 
 const entries: readonly Module[] = [
   { module_id: MODULE_IDS.CHASSIS_CORE, lifecycle_state: LIFECYCLE_STATES.INSTALLED, registry_state: REGISTRY_STATES.REGISTERED },
+  // RB-INT-CHASSIS-001 — admin panel modules
+  { module_id: MODULE_IDS.PAYME_ADMIN, lifecycle_state: LIFECYCLE_STATES.INSTALLED, registry_state: REGISTRY_STATES.REGISTERED },
+  { module_id: MODULE_IDS.REFERRAL_ADMIN, lifecycle_state: LIFECYCLE_STATES.INSTALLED, registry_state: REGISTRY_STATES.REGISTERED },
 ] as const;
 
 export function lookupModule(module_id: string): Module | undefined {

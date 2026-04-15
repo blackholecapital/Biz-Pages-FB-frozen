@@ -29,12 +29,18 @@ import { INSTALL_TOUCHPOINT } from "./install.touchpoint.js";
 import { UPDATE_TOUCHPOINT } from "./update.touchpoint.js";
 import { DISABLE_TOUCHPOINT } from "./disable.touchpoint.js";
 import { REMOVE_TOUCHPOINT } from "./remove.touchpoint.js";
+// RB-INT-CHASSIS-001 — admin panel touchpoints
+import { PAYME_ADMIN_TOUCHPOINT } from "./payme-admin.touchpoint.js";
+import { REFERRAL_ADMIN_TOUCHPOINT } from "./referral-admin.touchpoint.js";
 
 const TOUCHPOINTS: readonly Touchpoint[] = [
   INSTALL_TOUCHPOINT,
   UPDATE_TOUCHPOINT,
   DISABLE_TOUCHPOINT,
   REMOVE_TOUCHPOINT,
+  // RB-INT-CHASSIS-001 — admin panel touchpoints
+  PAYME_ADMIN_TOUCHPOINT,
+  REFERRAL_ADMIN_TOUCHPOINT,
 ];
 
 function touchpointValidationProof(tp: Touchpoint): ProofResult {
@@ -57,7 +63,7 @@ function touchpointCompatibilityProof(tp: Touchpoint): ProofResult {
 /**
  * Emit one ProofResult pair (validation + compatibility) per declared
  * chassis touchpoint. The returned array is deterministic and ordered:
- * [INSTALL, UPDATE, DISABLE, REMOVE] × [validation, compatibility].
+ * [INSTALL, UPDATE, DISABLE, REMOVE, PAYME_ADMIN, REFERRAL_ADMIN] × [validation, compatibility].
  */
 export function touchpointProofs(): readonly ProofResult[] {
   const results: ProofResult[] = [];

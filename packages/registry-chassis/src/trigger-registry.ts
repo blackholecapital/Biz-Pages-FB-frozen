@@ -12,6 +12,9 @@ const entries: readonly Trigger[] = [
   { trigger_id: TRIGGER_IDS.CHASSIS_UPDATE, registry_state: REGISTRY_STATES.REGISTERED },
   { trigger_id: TRIGGER_IDS.CHASSIS_DISABLE, registry_state: REGISTRY_STATES.REGISTERED },
   { trigger_id: TRIGGER_IDS.CHASSIS_REMOVE, registry_state: REGISTRY_STATES.REGISTERED },
+  // RB-INT-CHASSIS-001 — admin panel triggers
+  { trigger_id: TRIGGER_IDS.PAYME_ADMIN, registry_state: REGISTRY_STATES.REGISTERED },
+  { trigger_id: TRIGGER_IDS.REFERRAL_ADMIN, registry_state: REGISTRY_STATES.REGISTERED },
 ] as const;
 
 export function lookupTrigger(trigger_id: string): Trigger | undefined {

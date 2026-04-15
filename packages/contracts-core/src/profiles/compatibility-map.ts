@@ -60,6 +60,9 @@ export const FULL_BODY_PROFILE: ProfileConstraint = {
       ROUTE_IDS.CHASSIS_UPDATE,
       ROUTE_IDS.CHASSIS_DISABLE,
       ROUTE_IDS.CHASSIS_REMOVE,
+      // RB-INT-CHASSIS-001 — admin panel routes
+      ROUTE_IDS.PAYME_ADMIN,
+      ROUTE_IDS.REFERRAL_ADMIN,
     ],
     blocked: [],
     optional: [],
@@ -70,6 +73,11 @@ export const FULL_BODY_PROFILE: ProfileConstraint = {
       TOUCHPOINT_IDS.CLI_UPDATE,
       TOUCHPOINT_IDS.API_DISABLE,
       TOUCHPOINT_IDS.API_REMOVE,
+      // RB-INT-CHASSIS-001 — admin panel touchpoints
+      TOUCHPOINT_IDS.CLI_PAYME_ADMIN,
+      TOUCHPOINT_IDS.CLI_REFERRAL_ADMIN,
+      TOUCHPOINT_IDS.API_PAYME_ADMIN,
+      TOUCHPOINT_IDS.API_REFERRAL_ADMIN,
     ],
     blocked: [],
     optional: [],
@@ -80,6 +88,11 @@ export const FULL_BODY_PROFILE: ProfileConstraint = {
       TOUCHPOINT_IDS.CLI_UPDATE,
       TOUCHPOINT_IDS.API_DISABLE,
       TOUCHPOINT_IDS.API_REMOVE,
+      // RB-INT-CHASSIS-001 — admin panel mount eligibility (keyed by touchpoint id)
+      TOUCHPOINT_IDS.CLI_PAYME_ADMIN,
+      TOUCHPOINT_IDS.CLI_REFERRAL_ADMIN,
+      TOUCHPOINT_IDS.API_PAYME_ADMIN,
+      TOUCHPOINT_IDS.API_REFERRAL_ADMIN,
     ],
     blocked: [],
     optional: [],
