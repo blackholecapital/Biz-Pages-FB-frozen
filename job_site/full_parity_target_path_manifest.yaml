@@ -12,29 +12,29 @@ declared_deploy_root: apps/product-shell
 extension:
   - stage: S3
     worker: worker_b
-    pass: partial — modules/engage ONLY; mapping and allowlist only; no file creation
-    sections_added: SECTION 7 — MODULE PACKAGES (modules/engage only)
+    pass: partial — modules/engage + modules/payme; mapping and allowlist only; no file creation
+    sections_added: SECTION 7 — MODULE PACKAGES (modules/engage, modules/payme)
     modules_in_scope:
       - modules/engage
+      - modules/payme
     modules_deferred:
-      - modules/payme     # deferred to a later S3 worker_b sub-pass
       - modules/referrals # deferred to a later S3 worker_b sub-pass
       - modules/vault     # deferred to a later S3 worker_b sub-pass
     deploy_critical_filter: >
       Only baseline rows with deploy_critical: yes in
       /job_site/missing_surface_matrix.yaml §module_packages for modules/engage
-      are mapped. Rows with deploy_critical: no are explicitly excluded.
-      Other modules (payme, referrals, vault) are not processed in this pass.
+      and modules/payme are mapped. Rows with deploy_critical: no are
+      explicitly excluded. Other modules (referrals, vault) are not processed
+      in this pass.
     chassis_native_mapping_rule_modules: >
-      Baseline `modules/engage/` maps to chassis-native `apps/modules/engage/`.
-      This preserves the baseline relative reference `../modules/engage`
-      declared in `apps/product-shell/package.json` build:engage script:
-      `../modules/engage` relative to `apps/product-shell/` resolves to
-      `apps/modules/engage/` under this mapping, matching the baseline
-      internal relative path semantics without modification to the baseline
-      script content. The same mapping rule will apply when payme, referrals,
-      and vault are processed in later sub-passes, but is not declared
-      authoritatively for those modules in this pass.
+      Baseline `modules/<name>/` maps to chassis-native `apps/modules/<name>/`
+      for every module processed in this extension. For modules/engage this
+      preserves the baseline relative reference `../modules/engage` declared
+      in `apps/product-shell/package.json` build:engage script: `../modules/engage`
+      relative to `apps/product-shell/` resolves to `apps/modules/engage/`
+      under this mapping. The same mapping rule applies to modules/payme
+      (`apps/modules/payme/`). Referrals and vault will be mapped under the
+      identical rule when dispatched in later sub-passes.
 
 scope_lock:
   included:
@@ -57,8 +57,11 @@ scope_lock:
     - apps/modules/engage src/App.jsx
     - apps/modules/engage src/ (full tree)
     - apps/modules/engage public/_redirects
+    - apps/modules/payme package.json
+    - apps/modules/payme vite.config.js
+    - apps/modules/payme index.html
+    - apps/modules/payme src/ (full tree)
   excluded:
-    - modules/payme/     (deferred to later S3 worker_b sub-pass)
     - modules/referrals/ (deferred to later S3 worker_b sub-pass)
     - modules/vault/     (deferred to later S3 worker_b sub-pass)
     - engagefi-admin-minimal/, payme-admin-minimal/, referral-admin-minimal/ (deferred)
@@ -459,9 +462,62 @@ module_packages:
   # Excluded from SECTION 7 (deploy_critical: no in source matrix):
   # modules/engage/supabase_schema.sql — runtime_support, not deploy-critical
 
-  # ─── modules/payme, modules/referrals, modules/vault ───────────────────────
+  # ─── modules/payme ─────────────────────────────────────────────────────────
+
+  - baseline_path: modules/payme/
+    target_path: apps/modules/payme/
+    action: create_directory
+    category: module_package_root
+    deploy_critical: yes
+    assigned_worker: worker_b_s3
+
+  - baseline_path: modules/payme/package.json
+    target_path: apps/modules/payme/package.json
+    action: create
+    category: package_manifest
+    deploy_critical: yes
+    source_ref: https://github.com/blackholecapital/gatweay-production-FREEZE/blob/main/modules/payme/package.json
+    assigned_worker: worker_b_s3
+
+  - baseline_path: modules/payme/vite.config.js
+    target_path: apps/modules/payme/vite.config.js
+    action: create
+    category: build_config
+    deploy_critical: yes
+    source_ref: https://github.com/blackholecapital/gatweay-production-FREEZE/blob/main/modules/payme/vite.config.js
+    assigned_worker: worker_b_s3
+
+  - baseline_path: modules/payme/index.html
+    target_path: apps/modules/payme/index.html
+    action: create
+    category: html_entrypoint
+    deploy_critical: yes
+    source_ref: https://github.com/blackholecapital/gatweay-production-FREEZE/blob/main/modules/payme/index.html
+    assigned_worker: worker_b_s3
+
+  - baseline_path: modules/payme/src/
+    target_path: apps/modules/payme/src/
+    action: create_directory
+    category: module_source_root
+    deploy_critical: yes
+    assigned_worker: worker_b_s3
+
+  - baseline_path: modules/payme/src/ (full tree)
+    target_path: apps/modules/payme/src/ (full subtree)
+    action: create_subtree
+    category: module_source_tree
+    deploy_critical: yes
+    source_ref: https://github.com/blackholecapital/gatweay-production-FREEZE/tree/main/modules/payme/src
+    notes: App.jsx, main.jsx, components/, config/, pages/, services/, styles/, utils/ (30 files total per missing_surface_matrix.yaml)
+    assigned_worker: worker_b_s3
+
+  # Excluded from SECTION 7 for modules/payme (source matrix does not declare any
+  # deploy_critical: no rows for payme; payme has no package-lock.json,
+  # no public/_redirects, no _routes.json, no functions/ in missing_surface_matrix.yaml).
+
+  # ─── modules/referrals, modules/vault ──────────────────────────────────────
   # DEFERRED: not processed in this S3 worker_b sub-pass.
-  # Target paths for these three modules are declared in a later sub-pass.
+  # Target paths for these two modules are declared in later sub-passes.
   # Source matrix rows remain in /job_site/missing_surface_matrix.yaml §module_packages
   # and will be mapped under the same chassis-native rule
   # (baseline `modules/<name>/` → chassis `apps/modules/<name>/`) when dispatched.
@@ -515,12 +571,12 @@ summary:
 
 module_packages_summary:
   added_by: worker_b_s3
-  pass: mapping only — modules/engage ONLY; no file creation
-  modules_mapped: 1                    # modules/engage only in this pass
-  modules_deferred: 3                  # payme, referrals, vault — later sub-passes
-  files_to_create: 7                   # engage: package.json, package-lock.json, vite.config.js, index.html, src/main.jsx, src/App.jsx, public/_redirects
-  subtrees_to_create: 1                # engage src/ full tree
-  directories_to_create: 4             # apps/modules/, apps/modules/engage/, apps/modules/engage/src/, apps/modules/engage/public/
+  pass: mapping only — modules/engage + modules/payme; no file creation
+  modules_mapped: 2                    # engage + payme in this pass
+  modules_deferred: 2                  # referrals, vault — later sub-passes
+  files_to_create: 10                  # engage: 7 + payme: 3 (package.json, vite.config.js, index.html)
+  subtrees_to_create: 2                # engage src/ + payme src/
+  directories_to_create: 7             # apps/modules/, engage/, engage/src/, engage/public/, payme/, payme/src/
   create_list_flat_files:
     - apps/modules/engage/package.json
     - apps/modules/engage/package-lock.json
@@ -529,17 +585,22 @@ module_packages_summary:
     - apps/modules/engage/src/main.jsx
     - apps/modules/engage/src/App.jsx
     - apps/modules/engage/public/_redirects
+    - apps/modules/payme/package.json
+    - apps/modules/payme/vite.config.js
+    - apps/modules/payme/index.html
   subtree_list:
     - apps/modules/engage/src/ (full tree; 37 files)
+    - apps/modules/payme/src/ (full tree; 30 files)
   directory_create_list:
     - apps/modules/
     - apps/modules/engage/
     - apps/modules/engage/src/
     - apps/modules/engage/public/
+    - apps/modules/payme/
+    - apps/modules/payme/src/
   excluded_from_this_pass:
     - modules/engage/supabase_schema.sql    # deploy_critical: no (runtime_support)
   deferred_to_later_subpass:
-    - modules/payme/      (all files)
     - modules/referrals/  (all files)
     - modules/vault/      (all files including _routes.json and functions/api/)
     - modules/vault/Vault.MktMaker-main/     # deploy_critical: no (vendor_subtree)
