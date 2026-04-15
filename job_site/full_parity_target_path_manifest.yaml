@@ -1,0 +1,367 @@
+manifest_id: RB-INT-CHASSIS-002-S2-full-parity-target-path-manifest
+job_id: RB-INT-CHASSIS-002
+stage: S2
+pass: partial — deploy app root only
+worker: worker_a
+authority: exact chassis-native target paths for missing deploy app root surfaces
+source_matrix: /job_site/missing_surface_matrix.yaml
+baseline_source: https://github.com/blackholecapital/gatweay-production-FREEZE
+chassis_root: /home/user/gateway-fullbody-freeze
+declared_deploy_root: apps/product-shell
+
+scope_lock:
+  included:
+    - deploy_app_root/product-shell package.json
+    - deploy_app_root/product-shell index.html
+    - deploy_app_root/product-shell vite.config.ts
+    - deploy_app_root/product-shell tsconfig.json
+    - deploy_app_root/product-shell tsconfig.node.json
+    - deploy_app_root/product-shell src/main.tsx
+    - deploy_app_root/product-shell src/app/
+    - deploy_app_root/product-shell public/_redirects
+    - deploy_app_root/product-shell functions/api/
+    - deploy_app_root/product-shell functions/_lib/
+  excluded:
+    - modules/ (deferred to later S2 pass)
+    - engagefi-admin-minimal/, payme-admin-minimal/, referral-admin-minimal/ (deferred)
+    - src/components/, src/features/, src/pages/, src/hooks/, src/integrations/, src/runtime/, src/state/, src/styles/, src/utils/, src/config/, src/contracts/, src/mobile/ (deferred)
+    - public/ads/, public/apps/, public/demo/, public/wallpapers/, drip.png (deferred)
+    - tests/ (deferred)
+    - production/, resolver-boundary/, variation-control/, _review-required/ (deferred)
+    - docs/, blueprint/, README.md (deferred)
+
+chassis_native_mapping_rule: >
+  Baseline root directory `product-shell/` maps to chassis-native deploy root
+  `apps/product-shell/`. All baseline-relative paths under `product-shell/` are
+  preserved one-for-one beneath `apps/product-shell/`. This preserves baseline
+  internal relative path semantics while placing the deployable app under the
+  chassis `apps/` root convention already used by apps/core-runtime,
+  apps/operator-shell, apps/web-public, and apps/local-host.
+
+# =============================================================================
+# SECTION 1 — PACKAGE MANIFEST
+# =============================================================================
+package_manifest:
+
+  - baseline_path: product-shell/package.json
+    target_path: apps/product-shell/package.json
+    action: create
+    category: package_manifest
+    deploy_critical: yes
+    source_ref: https://github.com/blackholecapital/gatweay-production-FREEZE/blob/main/product-shell/package.json
+    declared_contents:
+      name: gateway-demo-zero
+      private: true
+      version: 0.0.0
+      type: module
+      scripts:
+        dev: vite
+        build: "npm run build:engage && vite build"
+        preview: vite preview
+        build:engage: "npm --prefix ../modules/engage install --progress=false && npm --prefix ../modules/engage run build"
+        test: "node --test tests/microfrontend/*.test.mjs"
+        test:pass5: "npm run test"
+        typecheck: "tsc --noEmit"
+      dependencies:
+        react: ^18.3.1
+        react-dom: ^18.3.1
+        react-router-dom: ^6.26.2
+      devDependencies:
+        "@types/react": ^18.3.3
+        "@types/react-dom": ^18.3.0
+        "@vitejs/plugin-react": ^4.3.1
+        typescript: ^5.5.4
+        vite: ^5.4.2
+    assigned_worker: worker_a_s3
+
+# =============================================================================
+# SECTION 2 — HTML ENTRYPOINT
+# =============================================================================
+html_entrypoint:
+
+  - baseline_path: product-shell/index.html
+    target_path: apps/product-shell/index.html
+    action: create
+    category: html_entrypoint
+    deploy_critical: yes
+    source_ref: https://github.com/blackholecapital/gatweay-production-FREEZE/blob/main/product-shell/index.html
+    declared_contents_summary: >
+      <!doctype html> with <html lang="en">, meta charset UTF-8, meta viewport,
+      <title>Gateway</title>, favicon link to /drip.png (icon + apple-touch-icon),
+      <body> containing <div id="root"></div> and
+      <script type="module" src="/src/main.tsx"></script>.
+    assigned_worker: worker_a_s3
+
+# =============================================================================
+# SECTION 3 — BUILD CONFIGS
+# =============================================================================
+build_configs:
+
+  - baseline_path: product-shell/vite.config.ts
+    target_path: apps/product-shell/vite.config.ts
+    action: create
+    category: build_config
+    deploy_critical: yes
+    source_ref: https://github.com/blackholecapital/gatweay-production-FREEZE/blob/main/product-shell/vite.config.ts
+    declared_contents_summary: >
+      import { defineConfig } from "vite";
+      import react from "@vitejs/plugin-react";
+      export default defineConfig({ plugins: [react()], server: { port: 5173 } });
+    assigned_worker: worker_a_s3
+
+  - baseline_path: product-shell/tsconfig.json
+    target_path: apps/product-shell/tsconfig.json
+    action: create
+    category: build_config
+    deploy_critical: yes
+    source_ref: https://github.com/blackholecapital/gatweay-production-FREEZE/blob/main/product-shell/tsconfig.json
+    declared_contents_summary: >
+      compilerOptions: target ES2022, useDefineForClassFields true,
+      lib ["ES2022","DOM","DOM.Iterable"], module ESNext, skipLibCheck true,
+      moduleResolution "Bundler", resolveJsonModule true, isolatedModules true,
+      noEmit true, jsx "react-jsx", strict true, types ["vite/client"];
+      include ["src"].
+    assigned_worker: worker_a_s3
+
+  - baseline_path: product-shell/tsconfig.node.json
+    target_path: apps/product-shell/tsconfig.node.json
+    action: create
+    category: build_config
+    deploy_critical: yes
+    source_ref: https://github.com/blackholecapital/gatweay-production-FREEZE/blob/main/product-shell/tsconfig.node.json
+    declared_contents_summary: >
+      Node-side tsconfig used by vite.config.ts tooling (10 lines; exact
+      contents to be copied verbatim from baseline in S3).
+    assigned_worker: worker_a_s3
+
+# =============================================================================
+# SECTION 4 — APP BOOTSTRAP (src/main.tsx + src/app/)
+# =============================================================================
+app_bootstrap:
+
+  - baseline_path: product-shell/src/main.tsx
+    target_path: apps/product-shell/src/main.tsx
+    action: create
+    category: app_bootstrap
+    deploy_critical: yes
+    source_ref: https://github.com/blackholecapital/gatweay-production-FREEZE/blob/main/product-shell/src/main.tsx
+    declared_role: >
+      React bundler entrypoint referenced by apps/product-shell/index.html
+      script tag. Mounts AppShell into the #root element.
+    assigned_worker: worker_a_s3
+
+  - baseline_path: product-shell/src/app/
+    target_path: apps/product-shell/src/app/
+    action: create_directory
+    category: app_bootstrap_root
+    deploy_critical: yes
+
+  - baseline_path: product-shell/src/app/AppShell.tsx
+    target_path: apps/product-shell/src/app/AppShell.tsx
+    action: create
+    category: app_bootstrap
+    deploy_critical: yes
+    source_ref: https://github.com/blackholecapital/gatweay-production-FREEZE/blob/main/product-shell/src/app/AppShell.tsx
+    declared_role: >
+      Top-level app shell component consumed by src/main.tsx. Hosts router
+      mount point and global layout providers.
+    assigned_worker: worker_a_s3
+
+  - baseline_path: product-shell/src/app/router.tsx
+    target_path: apps/product-shell/src/app/router.tsx
+    action: create
+    category: router_bootstrap
+    deploy_critical: yes
+    source_ref: https://github.com/blackholecapital/gatweay-production-FREEZE/blob/main/product-shell/src/app/router.tsx
+    declared_role: >
+      react-router-dom router instance definition consumed by AppShell. Uses
+      route table from ./routes.ts.
+    assigned_worker: worker_a_s3
+
+  - baseline_path: product-shell/src/app/routes.ts
+    target_path: apps/product-shell/src/app/routes.ts
+    action: create
+    category: router_bootstrap
+    deploy_critical: yes
+    source_ref: https://github.com/blackholecapital/gatweay-production-FREEZE/blob/main/product-shell/src/app/routes.ts
+    declared_role: >
+      Route table consumed by router.tsx. Exports the declarative route
+      list for the Gateway deploy app.
+    assigned_worker: worker_a_s3
+
+# =============================================================================
+# SECTION 5 — PUBLIC ASSETS (_redirects only, scoped pass)
+# =============================================================================
+public_assets:
+
+  - baseline_path: product-shell/public/
+    target_path: apps/product-shell/public/
+    action: create_directory
+    category: public_root
+    deploy_critical: yes
+
+  - baseline_path: product-shell/public/_redirects
+    target_path: apps/product-shell/public/_redirects
+    action: create
+    category: redirects
+    deploy_critical: yes
+    source_ref: https://github.com/blackholecapital/gatweay-production-FREEZE/blob/main/product-shell/public/_redirects
+    declared_contents: |
+      /apps/payme/*    /apps/payme/index.html    200
+      /apps/engage/*   /apps/engage/index.html   200
+      /apps/referrals/* /apps/referrals/index.html 200
+      /apps/vault/*    /apps/vault/index.html    200
+
+      /*    /index.html   200
+    assigned_worker: worker_a_s3
+
+# =============================================================================
+# SECTION 6 — CLOUDFLARE PAGES FUNCTIONS
+# =============================================================================
+pages_functions:
+
+  - baseline_path: product-shell/functions/
+    target_path: apps/product-shell/functions/
+    action: create_directory
+    category: pages_functions_root
+    deploy_critical: yes
+
+  - baseline_path: product-shell/functions/api/
+    target_path: apps/product-shell/functions/api/
+    action: create_directory
+    category: pages_functions_api_root
+    deploy_critical: yes
+
+  - baseline_path: product-shell/functions/_lib/
+    target_path: apps/product-shell/functions/_lib/
+    action: create_directory
+    category: pages_functions_lib_root
+    deploy_critical: yes
+
+  - baseline_path: product-shell/functions/api/microfrontend-bootstrap.js
+    target_path: apps/product-shell/functions/api/microfrontend-bootstrap.js
+    action: create
+    category: pages_function
+    deploy_critical: yes
+    source_ref: https://github.com/blackholecapital/gatweay-production-FREEZE/blob/main/product-shell/functions/api/microfrontend-bootstrap.js
+    route_binding: /api/microfrontend-bootstrap
+    assigned_worker: worker_a_s3
+
+  - baseline_path: product-shell/functions/api/microfrontend-trust-log.js
+    target_path: apps/product-shell/functions/api/microfrontend-trust-log.js
+    action: create
+    category: pages_function
+    deploy_critical: yes
+    source_ref: https://github.com/blackholecapital/gatweay-production-FREEZE/blob/main/product-shell/functions/api/microfrontend-trust-log.js
+    route_binding: /api/microfrontend-trust-log
+    assigned_worker: worker_a_s3
+
+  - baseline_path: product-shell/functions/api/page.js
+    target_path: apps/product-shell/functions/api/page.js
+    action: create
+    category: pages_function
+    deploy_critical: yes
+    source_ref: https://github.com/blackholecapital/gatweay-production-FREEZE/blob/main/product-shell/functions/api/page.js
+    route_binding: /api/page
+    assigned_worker: worker_a_s3
+
+  - baseline_path: product-shell/functions/api/published-manifest.js
+    target_path: apps/product-shell/functions/api/published-manifest.js
+    action: create
+    category: pages_function
+    deploy_critical: yes
+    source_ref: https://github.com/blackholecapital/gatweay-production-FREEZE/blob/main/product-shell/functions/api/published-manifest.js
+    route_binding: /api/published-manifest
+    assigned_worker: worker_a_s3
+
+  - baseline_path: product-shell/functions/api/published-page.js
+    target_path: apps/product-shell/functions/api/published-page.js
+    action: create
+    category: pages_function
+    deploy_critical: yes
+    source_ref: https://github.com/blackholecapital/gatweay-production-FREEZE/blob/main/product-shell/functions/api/published-page.js
+    route_binding: /api/published-page
+    assigned_worker: worker_a_s3
+
+  - baseline_path: product-shell/functions/_lib/runtime-compiler.js
+    target_path: apps/product-shell/functions/_lib/runtime-compiler.js
+    action: create
+    category: pages_function_lib
+    deploy_critical: yes
+    source_ref: https://github.com/blackholecapital/gatweay-production-FREEZE/blob/main/product-shell/functions/_lib/runtime-compiler.js
+    consumed_by:
+      - apps/product-shell/functions/api/microfrontend-bootstrap.js
+      - apps/product-shell/functions/api/published-manifest.js
+      - apps/product-shell/functions/api/published-page.js
+    assigned_worker: worker_a_s3
+
+  - baseline_path: product-shell/functions/_lib/runtime-r2.js
+    target_path: apps/product-shell/functions/_lib/runtime-r2.js
+    action: create
+    category: pages_function_lib
+    deploy_critical: yes
+    source_ref: https://github.com/blackholecapital/gatweay-production-FREEZE/blob/main/product-shell/functions/_lib/runtime-r2.js
+    consumed_by:
+      - apps/product-shell/functions/api/microfrontend-bootstrap.js
+      - apps/product-shell/functions/api/published-manifest.js
+      - apps/product-shell/functions/api/published-page.js
+    assigned_worker: worker_a_s3
+
+  - baseline_path: product-shell/functions/_lib/runtime-schema.js
+    target_path: apps/product-shell/functions/_lib/runtime-schema.js
+    action: create
+    category: pages_function_lib
+    deploy_critical: yes
+    source_ref: https://github.com/blackholecapital/gatweay-production-FREEZE/blob/main/product-shell/functions/_lib/runtime-schema.js
+    consumed_by:
+      - apps/product-shell/functions/api/microfrontend-bootstrap.js
+      - apps/product-shell/functions/api/published-manifest.js
+      - apps/product-shell/functions/api/published-page.js
+    assigned_worker: worker_a_s3
+
+# =============================================================================
+# SUMMARY
+# =============================================================================
+summary:
+  declared_deploy_root: apps/product-shell
+  files_to_create: 17
+  directories_to_create: 6
+  create_list:
+    - apps/product-shell/package.json
+    - apps/product-shell/index.html
+    - apps/product-shell/vite.config.ts
+    - apps/product-shell/tsconfig.json
+    - apps/product-shell/tsconfig.node.json
+    - apps/product-shell/src/main.tsx
+    - apps/product-shell/src/app/AppShell.tsx
+    - apps/product-shell/src/app/router.tsx
+    - apps/product-shell/src/app/routes.ts
+    - apps/product-shell/public/_redirects
+    - apps/product-shell/functions/api/microfrontend-bootstrap.js
+    - apps/product-shell/functions/api/microfrontend-trust-log.js
+    - apps/product-shell/functions/api/page.js
+    - apps/product-shell/functions/api/published-manifest.js
+    - apps/product-shell/functions/api/published-page.js
+    - apps/product-shell/functions/_lib/runtime-compiler.js
+    - apps/product-shell/functions/_lib/runtime-r2.js
+    - apps/product-shell/functions/_lib/runtime-schema.js
+  directory_create_list:
+    - apps/product-shell/
+    - apps/product-shell/src/
+    - apps/product-shell/src/app/
+    - apps/product-shell/public/
+    - apps/product-shell/functions/
+    - apps/product-shell/functions/api/
+    - apps/product-shell/functions/_lib/
+  deferred_to_later_s2_pass:
+    - app_component_tree        # src/components/, src/features/, src/pages/, etc.
+    - app_support_tree          # src/hooks/, src/runtime/, src/state/, src/utils/, src/config/, src/contracts/, src/integrations/, src/styles/, src/mobile/
+    - public_assets_full        # public/ads/, public/apps/, public/demo/, public/wallpapers/, drip.png
+    - tests                     # tests/microfrontend/*.test.mjs
+    - module_packages           # modules/engage, modules/payme, modules/referrals, modules/vault
+    - admin_apps                # engagefi-admin-minimal, payme-admin-minimal, referral-admin-minimal
+    - production_support        # production/
+    - resolver_boundary         # resolver-boundary/
+    - variation_control         # variation-control/
+    - review_artifacts          # _review-required/
+    - docs                      # product-shell/README.md, blueprint/, docs/
