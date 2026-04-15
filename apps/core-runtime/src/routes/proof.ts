@@ -31,12 +31,18 @@ import { INSTALL_ROUTE } from "./install.route.js";
 import { UPDATE_ROUTE } from "./update.route.js";
 import { DISABLE_ROUTE } from "./disable.route.js";
 import { REMOVE_ROUTE } from "./remove.route.js";
+// RB-INT-CHASSIS-001 — admin panel routes
+import { PAYME_ADMIN_ROUTE } from "./payme-admin.route.js";
+import { REFERRAL_ADMIN_ROUTE } from "./referral-admin.route.js";
 
 const ROUTES: readonly Route[] = [
   INSTALL_ROUTE,
   UPDATE_ROUTE,
   DISABLE_ROUTE,
   REMOVE_ROUTE,
+  // RB-INT-CHASSIS-001 — admin panel routes
+  PAYME_ADMIN_ROUTE,
+  REFERRAL_ADMIN_ROUTE,
 ];
 
 function routeValidationProof(route: Route): ProofResult {
@@ -59,7 +65,7 @@ function routeCompatibilityProof(route: Route): ProofResult {
 /**
  * Emit one ProofResult pair (validation + compatibility) per declared
  * chassis route. The returned array is deterministic and ordered:
- * [INSTALL, UPDATE, DISABLE, REMOVE] × [validation, compatibility].
+ * [INSTALL, UPDATE, DISABLE, REMOVE, PAYME_ADMIN, REFERRAL_ADMIN] × [validation, compatibility].
  */
 export function routeProofs(): readonly ProofResult[] {
   const results: ProofResult[] = [];

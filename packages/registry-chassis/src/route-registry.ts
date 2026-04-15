@@ -13,6 +13,9 @@ const entries: readonly Route[] = [
   { route_id: ROUTE_IDS.CHASSIS_UPDATE, surface_id: SURFACE_IDS.CLI_FACTORY, registry_state: REGISTRY_STATES.REGISTERED },
   { route_id: ROUTE_IDS.CHASSIS_DISABLE, surface_id: SURFACE_IDS.API_FACTORY, registry_state: REGISTRY_STATES.REGISTERED },
   { route_id: ROUTE_IDS.CHASSIS_REMOVE, surface_id: SURFACE_IDS.API_FACTORY, registry_state: REGISTRY_STATES.REGISTERED },
+  // RB-INT-CHASSIS-001 — admin panel routes
+  { route_id: ROUTE_IDS.PAYME_ADMIN, surface_id: SURFACE_IDS.API_FACTORY, registry_state: REGISTRY_STATES.REGISTERED },
+  { route_id: ROUTE_IDS.REFERRAL_ADMIN, surface_id: SURFACE_IDS.API_FACTORY, registry_state: REGISTRY_STATES.REGISTERED },
 ] as const;
 
 export function lookupRoute(route_id: string): Route | undefined {

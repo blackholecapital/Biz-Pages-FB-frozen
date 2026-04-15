@@ -20,6 +20,13 @@ const entries: readonly Event[] = [
   { event_id: EVENT_IDS.CHASSIS_REMOVE_REQUESTED, registry_state: REGISTRY_STATES.REGISTERED },
   { event_id: EVENT_IDS.CHASSIS_REMOVE_COMPLETED, registry_state: REGISTRY_STATES.REGISTERED },
   { event_id: EVENT_IDS.CHASSIS_REMOVE_FAILED, registry_state: REGISTRY_STATES.REGISTERED },
+  // RB-INT-CHASSIS-001 — admin panel events
+  { event_id: EVENT_IDS.PAYME_ADMIN_REQUESTED, registry_state: REGISTRY_STATES.REGISTERED },
+  { event_id: EVENT_IDS.PAYME_ADMIN_COMPLETED, registry_state: REGISTRY_STATES.REGISTERED },
+  { event_id: EVENT_IDS.PAYME_ADMIN_FAILED, registry_state: REGISTRY_STATES.REGISTERED },
+  { event_id: EVENT_IDS.REFERRAL_ADMIN_REQUESTED, registry_state: REGISTRY_STATES.REGISTERED },
+  { event_id: EVENT_IDS.REFERRAL_ADMIN_COMPLETED, registry_state: REGISTRY_STATES.REGISTERED },
+  { event_id: EVENT_IDS.REFERRAL_ADMIN_FAILED, registry_state: REGISTRY_STATES.REGISTERED },
 ] as const;
 
 export function lookupEvent(event_id: string): Event | undefined {
