@@ -1,0 +1,453 @@
+job:
+job_id: RB-INT-CHASSIS-001
+job_name: gateway-freeze-to-chassis rebuild/integrate
+objective: Rebuild and integrate the needed gateway/product-shell behaviors into the factory-approved chassis structure and language, reusing only valid patterns and copying only what is required.
+requested_outcome: Chassis-aligned integration plan and execution flow that recreates required behavior from the attached comparison archive inside our structure without redesigning chassis law.
+factory_approved_chassis: attached for reference
+job_site_root: /job_site
+reference_materials:
+- factory-manual-v1.11.txt
+- foreman-manual-v1.11.txt
+- worker-execution-manual-v1.1.txt
+- build-sheet-v1.11.txt
+- FULLBODY-CHASSIE-V1-FROZEN--main.zip
+- gatweay-production-FREEZE-main.zip
+- gateway comparison evidence includes product-shell, embedded payme-admin-minimal, embedded referral-admin-minimal, production ledgers, and resolver-boundary materials
+active_run_docs:
+- /job_site/factory-manual-v1.11.txt
+- /job_site/foreman-manual-v1.11.txt
+- /job_site/worker-execution-manual-v1.1.txt
+- /job_site/build-sheet-RB-INT-CHASSIS-001.txt
+operator_notes:
+- Treat the chassis as runtime boundary and reference truth for structure.
+- Recreate behavior in chassis-native locations only.
+- Reuse valid patterns from gateway freeze only where directly compatible.
+- Copy only minimal fragments required for parity.
+- Default repo write policy is mirror yes, commit yes, push yes.
+- Available comparison evidence is the chassis archive and gateway freeze archive.
+
+run_control:
+control_interface: Factory Control Interface
+execution_foreman: Foreman A the Blueprint Foreman
+checksum_foreman: Foreman B the Systems Foreman
+mode: single
+final_validator: Factory Control Interface
+
+output_rules:
+stage_activity_log: /job_site/stage_activity_log.txt
+final_tps_report: /job_site/TPS_REPORT.txt
+mandatory_foreman_tag_block:
+- job_id
+- foreman
+- current_stage
+- current_pass
+- next_stage
+- next_owner
+- passes_remaining
+- status
+- current_action
+mandatory_foreman_execution_block:
+- artifacts
+- checkpoint_result
+- handoff_instruction
+- issue_if_patch_or_error
+mandatory_worker_output:
+- "[PROJECT | WORKER | STAGE | RESULT]"
+- status
+- artifacts
+- summary
+- issues_if_patch
+
+stages:
+
+* stage_id: S1
+  stage_name: evidence intake and behavior inventory
+  owner: Factory Control Interface
+  goal: Establish a deterministic rebuild scope by extracting only the gateway behaviors that must be recreated inside the chassis.
+  inputs:
+
+  * FULLBODY-CHASSIE-V1-FROZEN--main.zip
+  * gatweay-production-FREEZE-main.zip
+  * /job_site/factory-manual-v1.11.txt
+  * /job_site/foreman-manual-v1.11.txt
+  * /job_site/worker-execution-manual-v1.1.txt
+  * /job_site/build-sheet-RB-INT-CHASSIS-001.txt
+    accepted_validation_evidence:
+  * attached_archive
+  * foreman_handoff_text
+  * worker_handoff_text
+    worker_orders:
+    worker_a:
+    assigned: yes
+    task: Extract a chassis inventory and a gateway inventory. Identify required runtime surfaces, contracts, routes, shell mounts, module boundaries, and minimal reusable fragments. Write only the declared inventory artifacts.
+    expected_artifacts:
+
+    * /job_site/chassis_inventory.md
+    * /job_site/gateway_behavior_inventory.md
+    * /job_site/minimal_reuse_candidates.md
+      required_references:
+    * /job_site/factory-manual-v1.11.txt
+    * /job_site/worker-execution-manual-v1.1.txt
+    * /job_site/build-sheet-RB-INT-CHASSIS-001.txt
+      repo_mirror_required: no
+      commit_required: no
+      push_required: no
+      worker_b:
+      assigned: yes
+      task: Produce a parity map from gateway behaviors to chassis-native destinations. Mark each item as reuse, fragment-copy, or chassis-native rebuild. Do not redesign scope.
+      expected_artifacts:
+    * /job_site/behavior_to_chassis_map.yaml
+    * /job_site/scope_lock.md
+      required_references:
+    * /job_site/factory-manual-v1.11.txt
+    * /job_site/worker-execution-manual-v1.1.txt
+    * /job_site/build-sheet-RB-INT-CHASSIS-001.txt
+      repo_mirror_required: no
+      commit_required: no
+      push_required: no
+      required_stage_artifacts:
+  * /job_site/chassis_inventory.md
+  * /job_site/gateway_behavior_inventory.md
+  * /job_site/minimal_reuse_candidates.md
+  * /job_site/behavior_to_chassis_map.yaml
+  * /job_site/scope_lock.md
+  * /job_site/stage_activity_log.txt
+    required_log_entries:
+  * S1 started
+  * S1 inventory complete
+  * S1 checkpoint result
+    checkpoint:
+    checkpoint_id: S1-CP1
+    pass_condition: All required gateway behaviors selected for rebuild are mapped to chassis-native destinations and each mapping is labeled reuse, fragment-copy, or rebuild with no open ambiguity.
+    patch_condition: Any required behavior lacks a destination path, reuse decision, or scope status.
+    handoff:
+    on_pass:
+    next_stage: S2
+    next_owner: Foreman A the Blueprint Foreman
+    on_patch:
+    return_stage: S1
+    return_owner: Factory Control Interface
+    on_error:
+    return_to: Factory Control Interface
+
+* stage_id: S2
+  stage_name: integration blueprint freeze
+  owner: Foreman A the Blueprint Foreman
+  goal: Convert the parity map into exact target paths, exact artifacts, and bounded worker execution orders for chassis-native implementation.
+  inputs:
+
+  * /job_site/chassis_inventory.md
+  * /job_site/gateway_behavior_inventory.md
+  * /job_site/minimal_reuse_candidates.md
+  * /job_site/behavior_to_chassis_map.yaml
+  * /job_site/scope_lock.md
+    accepted_validation_evidence:
+  * attached_archive
+  * foreman_handoff_text
+  * worker_handoff_text
+    worker_orders:
+    worker_a:
+    assigned: yes
+    task: Write the path-level integration blueprint for runtime contracts, registries, routes, shell mounts, transport links, and proof surfaces inside the chassis. Declare exact target paths only.
+    expected_artifacts:
+
+    * /job_site/integration_blueprint.md
+    * /job_site/target_path_manifest.yaml
+      required_references:
+    * /job_site/factory-manual-v1.11.txt
+    * /job_site/worker-execution-manual-v1.1.txt
+    * /job_site/build-sheet-RB-INT-CHASSIS-001.txt
+      repo_mirror_required: no
+      commit_required: no
+      push_required: no
+      worker_b:
+      assigned: yes
+      task: Write a copy-minimal fragment allowlist and a rebuild order that preserves chassis boundaries and avoids undeclared dependencies.
+      expected_artifacts:
+    * /job_site/fragment_allowlist.md
+    * /job_site/rebuild_execution_order.md
+      required_references:
+    * /job_site/factory-manual-v1.11.txt
+    * /job_site/worker-execution-manual-v1.1.txt
+    * /job_site/build-sheet-RB-INT-CHASSIS-001.txt
+      repo_mirror_required: no
+      commit_required: no
+      push_required: no
+      required_stage_artifacts:
+  * /job_site/integration_blueprint.md
+  * /job_site/target_path_manifest.yaml
+  * /job_site/fragment_allowlist.md
+  * /job_site/rebuild_execution_order.md
+    required_log_entries:
+  * S2 started
+  * S2 blueprint frozen
+  * S2 checkpoint result
+    checkpoint:
+    checkpoint_id: S2-CP1
+    pass_condition: Every required implementation item has an exact target path, exact artifact name or destination file, and an execution order that stays within chassis authority boundaries.
+    patch_condition: Any required implementation item lacks an exact target path, declared artifact, or bounded execution order.
+    handoff:
+    on_pass:
+    next_stage: S3
+    next_owner: Foreman A the Blueprint Foreman
+    on_patch:
+    return_stage: S2
+    return_owner: Foreman A the Blueprint Foreman
+    on_error:
+    return_to: Factory Control Interface
+
+* stage_id: S3
+  stage_name: chassis-native rebuild and integration
+  owner: Foreman A the Blueprint Foreman
+  goal: Recreate the selected gateway behaviors inside the chassis structure using only approved reuse and fragment-copy decisions.
+  inputs:
+
+  * /job_site/integration_blueprint.md
+  * /job_site/target_path_manifest.yaml
+  * /job_site/fragment_allowlist.md
+  * /job_site/rebuild_execution_order.md
+  * FULLBODY-CHASSIE-V1-FROZEN--main.zip
+  * gatweay-production-FREEZE-main.zip
+    accepted_validation_evidence:
+  * attached_file_system
+  * exact_repo_url
+  * attached_archive
+  * foreman_handoff_text
+  * worker_handoff_text
+    worker_orders:
+    worker_a:
+    assigned: yes
+    task: Implement chassis-native contract, registry, bridge, and route changes required for the mapped rebuild. Use only target paths declared in /job_site/target_path_manifest.yaml. Write repo changes and report mirror, commit, and push details.
+    expected_artifacts:
+
+    * packages/contracts-core/src/chassis/
+    * packages/registry-chassis/src/
+    * packages/runtime-bridge/src/
+    * packages/session-transport/src/
+    * apps/core-runtime/src/routes/
+    * apps/local-host/src/bridge/
+    * /job_site/runtime_change_manifest.md
+      required_references:
+    * /job_site/factory-manual-v1.11.txt
+    * /job_site/worker-execution-manual-v1.1.txt
+    * /job_site/build-sheet-RB-INT-CHASSIS-001.txt
+    * /job_site/target_path_manifest.yaml
+    * /job_site/fragment_allowlist.md
+      repo_mirror_required: yes
+      commit_required: yes
+      push_required: yes
+      worker_b:
+      assigned: yes
+      task: Implement chassis-native shell, mount, and public-surface changes required to recreate the selected product-shell, payme-admin, and referral-admin behaviors. Use only declared paths and approved fragments. Write repo changes and report mirror, commit, and push details.
+      expected_artifacts:
+    * apps/operator-shell/src/app/
+    * apps/operator-shell/src/mounts/
+    * apps/web-public/src/app/
+    * apps/web-public/src/mounts/
+    * /job_site/ui_change_manifest.md
+      required_references:
+    * /job_site/factory-manual-v1.11.txt
+    * /job_site/worker-execution-manual-v1.1.txt
+    * /job_site/build-sheet-RB-INT-CHASSIS-001.txt
+    * /job_site/target_path_manifest.yaml
+    * /job_site/fragment_allowlist.md
+      repo_mirror_required: yes
+      commit_required: yes
+      push_required: yes
+      required_stage_artifacts:
+  * /job_site/runtime_change_manifest.md
+  * /job_site/ui_change_manifest.md
+  * repo commit evidence for worker_a changes
+  * repo commit evidence for worker_b changes
+  * repo push evidence for worker_a changes
+  * repo push evidence for worker_b changes
+    required_log_entries:
+  * S3 started
+  * S3 runtime integration complete
+  * S3 UI integration complete
+  * S3 checkpoint result
+    checkpoint:
+    checkpoint_id: S3-CP1
+    pass_condition: All declared rebuild targets are implemented at declared chassis-native paths, undeclared files are not used as substitutes, and repo mirror, commit, and push evidence is present for all file-writing work.
+    patch_condition: Any declared target is missing, placed at a wrong path, or lacks required repo mirror, commit, or push evidence.
+    handoff:
+    on_pass:
+    next_stage: S4
+    next_owner: Foreman B the Systems Foreman
+    on_patch:
+    return_stage: S3
+    return_owner: Foreman A the Blueprint Foreman
+    on_error:
+    return_to: Factory Control Interface
+
+* stage_id: S4
+  stage_name: checksum validation and patch closure
+  owner: Foreman B the Systems Foreman
+  goal: Validate that rebuilt chassis behavior matches the declared parity scope and respects chassis boundaries.
+  inputs:
+
+  * /job_site/runtime_change_manifest.md
+  * /job_site/ui_change_manifest.md
+  * /job_site/behavior_to_chassis_map.yaml
+  * /job_site/target_path_manifest.yaml
+  * repo mirror evidence
+  * commit evidence
+  * push evidence
+    accepted_validation_evidence:
+  * attached_file_system
+  * exact_repo_url
+  * attached_archive
+  * foreman_handoff_text
+  * worker_handoff_text
+    worker_orders:
+    worker_a:
+    assigned: yes
+    task: Run declared validation commands, route checks, contract checks, and any chassis proof checks required by the integration blueprint. Write only the declared verification artifacts and report repo evidence if files are updated.
+    expected_artifacts:
+
+    * /job_site/verification_runbook.md
+    * /job_site/verification_results.md
+      required_references:
+    * /job_site/factory-manual-v1.11.txt
+    * /job_site/worker-execution-manual-v1.1.txt
+    * /job_site/build-sheet-RB-INT-CHASSIS-001.txt
+    * /job_site/target_path_manifest.yaml
+      repo_mirror_required: yes
+      commit_required: yes
+      push_required: yes
+      worker_b:
+      assigned: yes
+      task: Compare declared parity behaviors against gateway evidence and record any exact residual mismatch. If mismatch exists within declared scope, write a patch register only for those items.
+      expected_artifacts:
+    * /job_site/parity_verification_matrix.md
+    * /job_site/patch_register.md
+      required_references:
+    * /job_site/factory-manual-v1.11.txt
+    * /job_site/worker-execution-manual-v1.1.txt
+    * /job_site/build-sheet-RB-INT-CHASSIS-001.txt
+    * /job_site/behavior_to_chassis_map.yaml
+      repo_mirror_required: no
+      commit_required: no
+      push_required: no
+      required_stage_artifacts:
+  * /job_site/verification_runbook.md
+  * /job_site/verification_results.md
+  * /job_site/parity_verification_matrix.md
+  * /job_site/patch_register.md
+    required_log_entries:
+  * S4 started
+  * S4 checksum complete
+  * S4 checkpoint result
+    checkpoint:
+    checkpoint_id: S4-CP1
+    pass_condition: Exact target paths validate, declared behavior parity is met for the selected scope, no undeclared dependency or boundary violation remains open, and patch_register contains no unresolved in-scope blocker.
+    patch_condition: Any exact path, behavior parity item, dependency boundary, or required verification result fails.
+    handoff:
+    on_pass:
+    next_stage: S5
+    next_owner: Factory Control Interface
+    on_patch:
+    return_stage: S3
+    return_owner: Foreman A the Blueprint Foreman
+    on_error:
+    return_to: Factory Control Interface
+
+* stage_id: S5
+  stage_name: closeout and TPS
+  owner: Factory Control Interface
+  goal: Perform final validation, close the run, and issue TPS.
+  inputs:
+
+  * /job_site/chassis_inventory.md
+  * /job_site/gateway_behavior_inventory.md
+  * /job_site/behavior_to_chassis_map.yaml
+  * /job_site/integration_blueprint.md
+  * /job_site/target_path_manifest.yaml
+  * /job_site/runtime_change_manifest.md
+  * /job_site/ui_change_manifest.md
+  * /job_site/verification_results.md
+  * /job_site/parity_verification_matrix.md
+  * /job_site/patch_register.md
+  * /job_site/stage_activity_log.txt
+    accepted_validation_evidence:
+  * attached_file_system
+  * exact_repo_url
+  * attached_archive
+  * foreman_handoff_text
+  * worker_handoff_text
+    worker_orders:
+    worker_a:
+    assigned: no
+    task:
+    expected_artifacts: []
+    required_references:
+
+    * /job_site/factory-manual-v1.11.txt
+    * /job_site/worker-execution-manual-v1.1.txt
+    * /job_site/build-sheet-RB-INT-CHASSIS-001.txt
+      repo_mirror_required: no
+      commit_required: no
+      push_required: no
+      worker_b:
+      assigned: no
+      task:
+      expected_artifacts: []
+      required_references:
+    * /job_site/factory-manual-v1.11.txt
+    * /job_site/worker-execution-manual-v1.1.txt
+    * /job_site/build-sheet-RB-INT-CHASSIS-001.txt
+      repo_mirror_required: no
+      commit_required: no
+      push_required: no
+      required_stage_artifacts:
+  * /job_site/TPS_REPORT.txt
+    required_log_entries:
+  * S5 started
+  * S5 final validation complete
+  * S5 run closed
+    checkpoint:
+    checkpoint_id: S5-CP1
+    pass_condition: All declared stages passed, all required artifacts are present, stage_activity_log exists, and TPS report is written at /job_site/TPS_REPORT.txt.
+    patch_condition: Any declared artifact or closeout requirement is missing.
+    handoff:
+    on_pass:
+    next_stage: COMPLETE
+    next_owner: none
+    on_patch:
+    return_stage: S4
+    return_owner: Foreman B the Systems Foreman
+    on_error:
+    return_to: Factory Control Interface
+
+final_validation:
+accepted_validation_evidence:
+- attached_file_system
+- exact_repo_url
+- attached_archive
+- foreman_handoff_text
+- worker_handoff_text
+required_inputs:
+- /job_site/behavior_to_chassis_map.yaml
+- /job_site/target_path_manifest.yaml
+- /job_site/runtime_change_manifest.md
+- /job_site/ui_change_manifest.md
+- /job_site/verification_results.md
+- /job_site/parity_verification_matrix.md
+- /job_site/stage_activity_log.txt
+validation_checks:
+- Selected gateway behaviors are recreated only within chassis-native paths.
+- Reuse and fragment-copy actions match the approved allowlist.
+- No undeclared dependency, hidden transport, or path substitution is accepted.
+- Repo mirror, commit, and push evidence exists for all file-writing stages.
+- Final parity evidence matches the declared rebuild scope.
+outputs:
+- completion_status
+- /job_site/TPS_REPORT.txt
+
+completion:
+success_condition:
+- all declared stages completed
+- all required artifacts present
+- declared stage activity log present
+- declared TPS report present
+closeout_owner: Factory Control Interface
