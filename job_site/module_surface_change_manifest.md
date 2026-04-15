@@ -316,3 +316,100 @@ The following baseline surfaces remain classified `missing` in
 - No chassis package import, no cross-module import, and no path rewrite was introduced.
 - Two discrepancies (§8.1 src file count, §8.2 index.html favicon reference) are flagged but did NOT block execution because the `build:engage` script contract (valid `package.json` + `src/` subtree at `apps/modules/engage/`) is satisfied.
 - Build-time verification of `npm --prefix apps/modules/engage install` and `npm --prefix apps/modules/engage run build` is OUT OF SCOPE for this S3 worker_b pass and is deferred to S5 build verification.
+
+---
+
+## 12. Module Resolution Path Verification (S3 worker_b re-dispatch)
+
+job_id: RB-INT-CHASSIS-002
+stage: S3 (re-dispatch — module resolution verification)
+worker: worker_b
+authority: non-authoritative — derived from /job_site/build_verification_results.md §4, /job_site/full_parity_target_path_manifest.yaml §SECTION 7, and live tree inspection at HEAD ad431a3 on branch `claude/reconstruct-engage-modules-OdQZM`
+document_role: Record the verification that `apps/product-shell/package.json` `build:engage` script resolves `../modules/engage/package.json` correctly from its declared working directory. Declare whether a path or workspace-configuration correction is required.
+
+### 12.1 Verification Task
+
+Per S3 re-dispatch, verify and correct (if required) the module resolution path for `apps/modules/engage` so that the `build:engage` script in `apps/product-shell/package.json` resolves `package.json` from the `apps/product-shell` working-directory context.
+
+### 12.2 Declared build:engage Script (unchanged from baseline)
+
+`apps/product-shell/package.json` declares:
+
+```
+"build:engage": "npm --prefix ../modules/engage install --progress=false && npm --prefix ../modules/engage run build"
+```
+
+This script is the baseline-verbatim value (see `/job_site/full_parity_target_path_manifest.yaml` §SECTION 1 line 109 and `/job_site/deploy_surface_change_manifest.md` §4.1). The script has NOT been modified on any branch; the relative reference `../modules/engage` is the baseline declaration.
+
+### 12.3 Chassis-Native Mapping (per S2 + S3 map pass)
+
+`/job_site/full_parity_target_path_manifest.yaml` §SECTION 7 declares the baseline → chassis-native mapping:
+
+```
+modules/engage/        → apps/modules/engage/
+modules/engage/package.json → apps/modules/engage/package.json
+```
+
+Lines 29–31 of the same manifest state: *"For modules/engage this preserves the baseline relative reference `../modules/engage` declared in `apps/product-shell/package.json` `build:engage` script. `../modules/engage` relative to `apps/product-shell/` resolves to `apps/modules/engage/` under this rule."*
+
+The rule by construction guarantees that placing the module at `apps/modules/engage/` (sibling of `apps/product-shell/` under the shared `apps/` parent) preserves the baseline relative path reference without any script modification.
+
+### 12.4 Live Tree Verification
+
+From working directory `apps/product-shell/`:
+
+| test | command | result |
+|---|---|---|
+| 12.4.1 | `pwd` | `/home/user/gateway-fullbody-freeze/apps/product-shell` |
+| 12.4.2 | `realpath ../modules/engage` | `/home/user/gateway-fullbody-freeze/apps/modules/engage` (resolves) |
+| 12.4.3 | `realpath ../modules/engage/package.json` | `/home/user/gateway-fullbody-freeze/apps/modules/engage/package.json` (resolves) |
+| 12.4.4 | `ls -la ../modules/engage/package.json` | file exists, 693 bytes, readable |
+| 12.4.5 | `npm --prefix ../modules/engage pkg get name` | `"engagefi-questboard"` — npm successfully reads package.json through `--prefix` |
+| 12.4.6 | `npm --prefix ../modules/engage pkg get scripts.build` | `"vite build"` — npm successfully reads `scripts.build` field |
+
+All six tests PASS. `npm --prefix ../modules/engage <cmd>` from `apps/product-shell/` correctly resolves and reads `apps/modules/engage/package.json`. The `build:engage` script's first sub-command (`npm --prefix ../modules/engage install --progress=false`) and second sub-command (`npm --prefix ../modules/engage run build`) will both locate the engage manifest and the engage `build` script as declared.
+
+### 12.5 Corrective Action
+
+**NONE REQUIRED.** The module resolution path is already correct as-declared:
+
+- The `build:engage` script is at its baseline-verbatim value and MUST NOT be modified (per `/job_site/full_parity_fragment_allowlist.md` §3.1 forbidden modifications: *"Do NOT remove or rename any baseline `scripts` entry. Baseline `build`/`dev`/`preview` are authoritative."* — the parallel forbidden-modification rule for the deploy-app `package.json` `build:engage` script is implicit in the verbatim-copy contract of `/job_site/deploy_surface_change_manifest.md` §4.1).
+- The engage module is already placed at the correct chassis-native target path `apps/modules/engage/` per the S3 worker_b engage reconstruction pass (commit 5e44c61).
+- The relative path `../modules/engage` from CWD `apps/product-shell/` resolves to `apps/modules/engage/` by the shared-parent sibling-directory rule declared in `/job_site/full_parity_target_path_manifest.yaml` §SECTION 7 lines 29–34.
+- No workspace configuration (`workspaces` field in any `package.json`, `pnpm-workspace.yaml`, `lerna.json`, `turbo.json`, `nx.json`, etc.) is introduced or required. The module is a standalone install unit as declared by `/job_site/full_parity_fragment_allowlist.md` §3.1: *"Do NOT inject a `workspaces` field. The module is an isolated install unit under `apps/product-shell/package.json` `build:engage` script."*
+- No new module, no new path, no new file, and no new directory is introduced.
+
+### 12.6 Delta vs `/job_site/build_verification_results.md`
+
+The S5 worker_a build verification run (commit 1136e2a) recorded FAIL at step 3a with error:
+
+```
+npm error enoent Could not read package.json:
+  Error: ENOENT: no such file or directory,
+  open '/home/user/gateway-fullbody-freeze/apps/modules/engage/package.json'
+```
+
+The error resolved path matches exactly the chassis-native target path now populated by the S3 worker_b engage reconstruction pass (commit 5e44c61). The `--prefix` resolution logic in that verification run was NOT broken — npm correctly resolved `apps/product-shell/` + `../modules/engage` → `apps/modules/engage/`; the file was simply absent from the tree at that moment. Step 5 cleanup of that run additionally removed `apps/modules/` entirely (see §7 of the verification results), which explains why a post-cleanup tree showed no `apps/modules/` at all.
+
+At HEAD ad431a3 (this branch) the file is present and byte-equal to baseline (verified via §6 of this manifest and §2.4.1 of `/job_site/module_surface_change_manifest.md`). Therefore:
+
+- The prior step-3a FAIL is now CLEARED by the content change committed in 5e44c61, **not** by any path or script correction.
+- No `build:engage` path alignment was required because the path was always correct; only the target file was missing.
+- Re-running step 3a of `/job_site/build_verification_runbook.md` at HEAD ad431a3 is expected to PASS the `build:engage` sub-step. The downstream `vite build` will still FAIL on the deploy-app import graph (as recorded in `/job_site/pages_readiness_matrix.md` row 2.4 and `/job_site/patch_register.md` §5 PATCH-RB002-023..029), but that is a separate, downstream blocker on a different subtree.
+
+### 12.7 Files Modified By This S3 Re-Dispatch
+
+| path | change |
+|---|---|
+| `/job_site/module_surface_change_manifest.md` | append §12 (this section) — no other changes |
+
+Zero code files modified. Zero `package.json` files modified. Zero new modules, directories, or files introduced. The re-dispatch scope is documentation-only, and the documentation records that no corrective action was required.
+
+### 12.8 Checksum Pointers for Foreman B (re-dispatch)
+
+- The `build:engage` script in `apps/product-shell/package.json` is unchanged from its baseline-verbatim value as declared in `/job_site/full_parity_target_path_manifest.yaml` §SECTION 1 line 109.
+- The chassis-native target path `apps/modules/engage/package.json` is populated and byte-equal to the baseline `modules/engage/package.json` (verified in §4.1 of this manifest).
+- The relative reference `../modules/engage` from CWD `apps/product-shell/` resolves via the kernel's `realpath(3)` to `/home/user/gateway-fullbody-freeze/apps/modules/engage` (verified in §12.4.2 above).
+- `npm --prefix ../modules/engage pkg get name` exits 0 and returns `"engagefi-questboard"` from CWD `apps/product-shell/` (verified in §12.4.5 above).
+- No workspace configuration is present in any `package.json` on this branch; workspace-based resolution is NOT in use and is forbidden by `/job_site/full_parity_fragment_allowlist.md` §3.1.
+- No corrective action was taken or required. The re-dispatch closes as a verification-only pass with **no module, script, path, or workspace change**.
