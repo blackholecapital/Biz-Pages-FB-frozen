@@ -385,3 +385,21 @@ Build step NOT executed in this sub-run.
 | exit code | 0 |
 | run branch | `claude/rebuild-product-shell-KIQNp` |
 | build executed | no |
+
+---
+
+## 13. Appended build:engage-Only Step (operator dispatch — build:engage-only re-run)
+
+Task dispatch: run ONLY `npm run build:engage` from `apps/product-shell`.
+Full build and direct `vite build` of `apps/product-shell` NOT executed in
+this sub-run.
+
+| field | value |
+|---|---|
+| working directory | `/home/user/gateway-fullbody-freeze/apps/product-shell` |
+| command | `npm run build:engage` |
+| resolved script | `npm --prefix ../modules/engage install --progress=false && npm --prefix ../modules/engage run build` |
+| exit code | 0 |
+| primary error line | (none — step completed; engage `vite build` produced `../../public/apps/engage/{index.html,assets/index-*.css,assets/index-*.js}` and exited 0 with `✓ 5569 modules transformed`) |
+| run branch | `claude/rebuild-product-shell-KIQNp` |
+| product-shell vite build executed | no |
