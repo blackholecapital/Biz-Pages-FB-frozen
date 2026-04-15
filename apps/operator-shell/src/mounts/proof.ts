@@ -33,6 +33,14 @@ import {
   UPDATE_MOUNT,
   isMountAuthorized as isUpdateMountAuthorized,
 } from "./update.mount.js";
+import {
+  PAYME_ADMIN_MOUNT,
+  isMountAuthorized as isPaymeAdminMountAuthorized,
+} from "./payme-admin.mount.js";
+import {
+  REFERRAL_ADMIN_MOUNT,
+  isMountAuthorized as isReferralAdminMountAuthorized,
+} from "./referral-admin.mount.js";
 
 interface OperatorShellMount {
   readonly label: string;
@@ -50,6 +58,16 @@ const OPERATOR_SHELL_MOUNTS: readonly OperatorShellMount[] = [
     label: "UPDATE_MOUNT",
     touchpoint_id: UPDATE_MOUNT.touchpoint_id,
     authorized: isUpdateMountAuthorized,
+  },
+  {
+    label: "PAYME_ADMIN_MOUNT",
+    touchpoint_id: PAYME_ADMIN_MOUNT.touchpoint_id,
+    authorized: isPaymeAdminMountAuthorized,
+  },
+  {
+    label: "REFERRAL_ADMIN_MOUNT",
+    touchpoint_id: REFERRAL_ADMIN_MOUNT.touchpoint_id,
+    authorized: isReferralAdminMountAuthorized,
   },
 ];
 
