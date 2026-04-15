@@ -255,3 +255,158 @@ adjudicate before S5 begins.
 - Every created file is a byte-for-byte copy of its declared baseline source.
 - Scope lock is enforced — no file outside the declared scope was created, modified, or deleted.
 - Two inter-reference conflicts (§8.1, §8.2) are flagged but did not block execution because the foreman dispatch, build sheet S3 expected artifacts, and target path manifest all align on `apps/product-shell/*`.
+
+---
+
+## 11. Append — Asset Reconstruction Pass (S3 follow-up)
+
+job_id: RB-INT-CHASSIS-002
+stage: S3
+pass: deploy app asset reconstruction (styles + state + mobile)
+worker: worker_a
+branch: claude/create-missing-assets-epdo4
+authority: record of exact file-system changes made under `apps/product-shell/src/` to satisfy the missing import surfaces flagged by `/job_site/build_verification_results.md` §5 and §9.1.
+
+### 11.1 Trigger
+
+S5 build verification (`/job_site/build_verification_results.md` §5) recorded that `npx vite build` from `apps/product-shell/` failed at Rollup module-graph resolution because `src/main.tsx` imports the following surfaces, which were classified `missing` in `/job_site/missing_surface_matrix.yaml` and explicitly deferred by the prior S3 deploy app surface pass (§6 of this manifest):
+
+```
+import { DemoGateProvider } from "./state/demoGateState";
+import "./styles/global.css";
+import "./styles/shell.css";
+import "./styles/nav.css";
+import "./styles/cards.css";
+import "./styles/gate.css";
+import "./styles/admin.css";
+import "./styles/marketplace.css";
+import "./styles/published-overlay.css";
+import "./mobile/styles/mobile-overlay.css";
+```
+
+This append documents the reconstruction of exactly those 10 import targets (8 CSS files under `src/styles/`, 1 TSX state file under `src/state/`, 1 CSS file under `src/mobile/styles/`) plus the baseline-present sibling `src/mobile/README.md`, so that the missing-import cascade from `src/main.tsx` is closed.
+
+### 11.2 Scope Lock (enforced)
+
+Created exactly the surfaces listed in `/job_site/missing_surface_matrix.yaml` rows:
+
+- `product-shell/src/state/demoGateState.tsx` (category `app_state`, deploy_critical: yes)
+- `product-shell/src/styles/` (category `styles`, deploy_critical: yes — 8 CSS files)
+- `product-shell/src/mobile/` (category `mobile`, deploy_critical: no — README.md + styles/mobile-overlay.css)
+
+All other deferred surfaces from §6 of this manifest (components, features, pages, hooks, integrations, config, contracts, utils, public assets, tests, modules, admin apps, production, resolver, variation, review, docs) are NOT touched by this pass and remain classified `missing`.
+
+### 11.3 Change Set Summary
+
+| metric | value |
+|---|---|
+| files created | 11 |
+| files modified | 0 |
+| files deleted | 0 |
+| directories created | 4 |
+| total bytes written | 53860 |
+| copy method | verbatim byte-for-byte from baseline product-shell/src/* |
+
+### 11.4 Directories Created
+
+- `apps/product-shell/src/styles/`
+- `apps/product-shell/src/state/`
+- `apps/product-shell/src/mobile/`
+- `apps/product-shell/src/mobile/styles/`
+
+### 11.5 Files Created
+
+#### 11.5.1 src/state/
+
+| target_path | baseline_path | bytes | action |
+|---|---|---|---|
+| apps/product-shell/src/state/demoGateState.tsx | product-shell/src/state/demoGateState.tsx | 4721 | create (verbatim) |
+
+Exports: `DemoGateProvider` (React context provider consumed by `src/main.tsx`), `useDemoGate` (hook), `DemoGateState` (type), `Actions` (type). Imports only `react` (declared in baseline `apps/product-shell/package.json` dependencies). Introduces no cross-surface import.
+
+#### 11.5.2 src/styles/
+
+| target_path | baseline_path | bytes | action |
+|---|---|---|---|
+| apps/product-shell/src/styles/admin.css | product-shell/src/styles/admin.css | 22767 | create (verbatim) |
+| apps/product-shell/src/styles/cards.css | product-shell/src/styles/cards.css | 1357 | create (verbatim) |
+| apps/product-shell/src/styles/gate.css | product-shell/src/styles/gate.css | 7751 | create (verbatim) |
+| apps/product-shell/src/styles/global.css | product-shell/src/styles/global.css | 1347 | create (verbatim) |
+| apps/product-shell/src/styles/marketplace.css | product-shell/src/styles/marketplace.css | 477 | create (verbatim) |
+| apps/product-shell/src/styles/nav.css | product-shell/src/styles/nav.css | 5460 | create (verbatim) |
+| apps/product-shell/src/styles/published-overlay.css | product-shell/src/styles/published-overlay.css | 4136 | create (verbatim) |
+| apps/product-shell/src/styles/shell.css | product-shell/src/styles/shell.css | 2642 | create (verbatim) |
+
+Subtotal: 8 files, 45937 bytes. Each file is a pure CSS stylesheet with no `@import` references to other product-shell surfaces.
+
+#### 11.5.3 src/mobile/
+
+| target_path | baseline_path | bytes | action |
+|---|---|---|---|
+| apps/product-shell/src/mobile/README.md | product-shell/src/mobile/README.md | 686 | create (verbatim) |
+| apps/product-shell/src/mobile/styles/mobile-overlay.css | product-shell/src/mobile/styles/mobile-overlay.css | 2516 | create (verbatim) |
+
+Subtotal: 2 files, 3202 bytes. The README is the baseline-present sibling of the styles directory and is included to mirror the baseline `product-shell/src/mobile/` subtree exactly.
+
+### 11.6 Verification Against build_verification_results.md §9.1 Deferred Items
+
+| build_verification_results §9.1 item | created_path | status |
+|---|---|---|
+| apps/product-shell/src/state/demoGateState.tsx | apps/product-shell/src/state/demoGateState.tsx | present |
+| apps/product-shell/src/styles/admin.css | apps/product-shell/src/styles/admin.css | present |
+| apps/product-shell/src/styles/cards.css | apps/product-shell/src/styles/cards.css | present |
+| apps/product-shell/src/styles/gate.css | apps/product-shell/src/styles/gate.css | present |
+| apps/product-shell/src/styles/global.css | apps/product-shell/src/styles/global.css | present |
+| apps/product-shell/src/styles/marketplace.css | apps/product-shell/src/styles/marketplace.css | present |
+| apps/product-shell/src/styles/nav.css | apps/product-shell/src/styles/nav.css | present |
+| apps/product-shell/src/styles/published-overlay.css | apps/product-shell/src/styles/published-overlay.css | present |
+| apps/product-shell/src/styles/shell.css | apps/product-shell/src/styles/shell.css | present |
+| apps/product-shell/src/mobile/styles/mobile-overlay.css | apps/product-shell/src/mobile/styles/mobile-overlay.css | present |
+
+All 10 missing-import targets named in `/job_site/build_verification_results.md` §5 are now present at their declared paths. The `src/mobile/README.md` baseline sibling is also present.
+
+### 11.7 Out-of-Scope (still deferred after this pass)
+
+The following baseline deploy-app surfaces remain classified `missing` and are NOT created by this asset reconstruction pass:
+
+- `apps/product-shell/src/components/` (23 component files)
+- `apps/product-shell/src/config/` (nav.config.ts, pageBackgrounds.ts, staticPageAssets.ts)
+- `apps/product-shell/src/contracts/microfrontend.ts`
+- `apps/product-shell/src/features/` (engage, marketplace, payme, referrals)
+- `apps/product-shell/src/hooks/` (usePublishedExclusiveTiles.ts, useViewportMode.ts)
+- `apps/product-shell/src/integrations/spine/` (bridge.ts, index.ts, registry.ts, types.ts)
+- `apps/product-shell/src/pages/` (11 pages)
+- `apps/product-shell/src/utils/` (5 util files)
+- `apps/product-shell/public/ads/`, `public/apps/`, `public/demo/`, `public/wallpapers/`, `drip.png`
+- `apps/product-shell/tests/microfrontend/`
+- Module packages: `apps/modules/engage`, `apps/modules/payme`, `apps/modules/referrals`, `apps/modules/vault`
+- Admin apps: `engagefi-admin-minimal`, `payme-admin-minimal`, `referral-admin-minimal`
+- `production/`, `resolver-boundary/`, `variation-control/`, `_review-required/`
+
+A subsequent rebuild pass is still required to close `src/app/router.tsx` → `../pages/*`, `../features/*`, `../components/*` cascade and the `build:engage` `apps/modules/engage/` cascade before the tree is end-to-end buildable.
+
+### 11.8 Build-Time Dependency Alert (unchanged)
+
+This append pass closes only the `src/main.tsx` direct-import cascade. The `src/app/router.tsx` → `../pages/*`, `../features/*`, `../components/*` cascade and the `build:engage` → `apps/modules/engage/` cascade are still present and will continue to fail S5 verification until those rebuild passes are executed.
+
+### 11.9 Reference Conflict Status
+
+The §8.1 (`pages_deployment_spec.md` deploy root mismatch) and §8.2 (RB-INT-CHASSIS-001 fragment allowlist) conflicts logged in this manifest remain unresolved by this pass. They are documentation-level conflicts and do not affect file-system writes under `apps/product-shell/src/{styles,state,mobile}/`. The RB-INT-CHASSIS-002-specific `/job_site/full_parity_fragment_allowlist.md` (§0 Pass Scope) explicitly limits its allowlist to `modules/*` and explicitly excludes "any … product-shell app-root surface", so this pass is not constrained by that allowlist.
+
+### 11.10 Repo Mirror / Commit / Push Evidence
+
+| field | value |
+|---|---|
+| repo_mirror | yes — writes made to working tree at `/home/user/gateway-fullbody-freeze/apps/product-shell/src/{styles,state,mobile}/` |
+| commit_required | yes |
+| push_required | yes |
+| branch | claude/create-missing-assets-epdo4 |
+| commit_hash | (recorded post-commit; see git log) |
+| pushed_to | origin/claude/create-missing-assets-epdo4 |
+
+### 11.11 Checksum Pointers for Foreman B
+
+- Every created file is a byte-for-byte copy of its declared baseline source under `/tmp/baseline-freeze/product-shell/src/{styles,state,mobile}/`.
+- Scope lock is enforced — no file outside `apps/product-shell/src/{styles,state,mobile}/` was created, modified, or deleted in this append pass.
+- Every missing-import target named in `/job_site/build_verification_results.md` §5 is now present at the declared path.
+- `src/main.tsx` no longer has any direct missing import. Its remaining failure modes (router → pages/features/components, build:engage → modules/engage) are unaffected by this pass and remain documented in §11.7 and §11.8.
