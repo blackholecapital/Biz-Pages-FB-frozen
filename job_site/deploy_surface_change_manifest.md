@@ -410,3 +410,195 @@ The §8.1 (`pages_deployment_spec.md` deploy root mismatch) and §8.2 (RB-INT-CH
 - Scope lock is enforced — no file outside `apps/product-shell/src/{styles,state,mobile}/` was created, modified, or deleted in this append pass.
 - Every missing-import target named in `/job_site/build_verification_results.md` §5 is now present at the declared path.
 - `src/main.tsx` no longer has any direct missing import. Its remaining failure modes (router → pages/features/components, build:engage → modules/engage) are unaffected by this pass and remain documented in §11.7 and §11.8.
+
+---
+
+## 12. Append — Route Reconstruction Pass (S3 follow-up)
+
+job_id: RB-INT-CHASSIS-002
+stage: S3
+pass: deploy app route reconstruction (src/pages/ — router.tsx direct dependencies only)
+worker: worker_a
+branch: claude/create-missing-assets-epdo4
+authority: record of exact file-system changes made under `apps/product-shell/src/pages/` to satisfy the missing route imports flagged by `/job_site/build_verification_results.md` (post-asset-reconstruction re-run) §5.2.
+
+### 12.1 Trigger
+
+The S5 verification re-run (`/job_site/build_verification_results.md` §5)
+recorded that `npx vite build` from `apps/product-shell/` advanced from 3
+modules transformed to 13 modules transformed (closing the §11 asset
+cascade out of `src/main.tsx`) and then failed at:
+
+```
+Could not resolve "../pages/HomePage" from "src/app/router.tsx"
+```
+
+`apps/product-shell/src/app/router.tsx` (already present from §4.4 of this
+manifest) contains the following 11 page-module imports:
+
+```
+import { HomePage } from "../pages/HomePage";
+import { MembersPage } from "../pages/MembersPage";
+import { AccessPage } from "../pages/AccessPage";
+import { AccessTier1Page } from "../pages/AccessTier1Page";
+import { AccessTier2Page } from "../pages/AccessTier2Page";
+import { AccessTier3Page } from "../pages/AccessTier3Page";
+import { PayMePage } from "../pages/PayMePage";
+import { EngagePage } from "../pages/EngagePage";
+import { ReferralsPage } from "../pages/ReferralsPage";
+import { SkinMarketplacePage } from "../pages/SkinMarketplacePage";
+import { AdminPage } from "../pages/AdminPage";
+```
+
+This append documents the reconstruction of exactly those 11 page-module
+files (the immediate router dependencies). Per task dispatch, the cascade
+beyond `src/pages/` (into `../components/*`, `../features/*`, `../hooks/*`,
+`../utils/*`, `../runtime/*`, `../state/*`) is **not** expanded by this pass.
+
+### 12.2 Scope Lock (enforced)
+
+Created exactly the 11 router-direct page modules listed in
+`/job_site/missing_surface_matrix.yaml` row `product-shell/src/pages/`
+(category `pages`, deploy_critical: yes, notes: 11 page files):
+
+- `product-shell/src/pages/AccessPage.tsx`
+- `product-shell/src/pages/AccessTier1Page.tsx`
+- `product-shell/src/pages/AccessTier2Page.tsx`
+- `product-shell/src/pages/AccessTier3Page.tsx`
+- `product-shell/src/pages/AdminPage.tsx`
+- `product-shell/src/pages/EngagePage.tsx`
+- `product-shell/src/pages/HomePage.tsx`
+- `product-shell/src/pages/MembersPage.tsx`
+- `product-shell/src/pages/PayMePage.tsx`
+- `product-shell/src/pages/ReferralsPage.tsx`
+- `product-shell/src/pages/SkinMarketplacePage.tsx`
+
+All other deferred surfaces from §6 / §11.7 of this manifest
+(`src/components/`, `src/features/`, `src/hooks/`, `src/integrations/`,
+`src/config/`, `src/contracts/`, `src/utils/`, `public/` assets, tests,
+modules, admin apps, production, resolver, variation, review, docs) are
+NOT touched by this pass and remain classified `missing`.
+
+### 12.3 Change Set Summary
+
+| metric | value |
+|---|---|
+| files created | 11 |
+| files modified | 0 |
+| files deleted | 0 |
+| directories created | 1 |
+| total bytes written | 27301 |
+| copy method | verbatim byte-for-byte from baseline product-shell/src/pages/* |
+
+### 12.4 Directories Created
+
+- `apps/product-shell/src/pages/`
+
+### 12.5 Files Created
+
+| target_path | baseline_path | bytes | action |
+|---|---|---|---|
+| apps/product-shell/src/pages/AccessPage.tsx | product-shell/src/pages/AccessPage.tsx | 2246 | create (verbatim) |
+| apps/product-shell/src/pages/AccessTier1Page.tsx | product-shell/src/pages/AccessTier1Page.tsx | 423 | create (verbatim) |
+| apps/product-shell/src/pages/AccessTier2Page.tsx | product-shell/src/pages/AccessTier2Page.tsx | 19291 | create (verbatim) |
+| apps/product-shell/src/pages/AccessTier3Page.tsx | product-shell/src/pages/AccessTier3Page.tsx | 2019 | create (verbatim) |
+| apps/product-shell/src/pages/AdminPage.tsx | product-shell/src/pages/AdminPage.tsx | 1653 | create (verbatim) |
+| apps/product-shell/src/pages/EngagePage.tsx | product-shell/src/pages/EngagePage.tsx | 265 | create (verbatim) |
+| apps/product-shell/src/pages/HomePage.tsx | product-shell/src/pages/HomePage.tsx | 243 | create (verbatim) |
+| apps/product-shell/src/pages/MembersPage.tsx | product-shell/src/pages/MembersPage.tsx | 197 | create (verbatim) |
+| apps/product-shell/src/pages/PayMePage.tsx | product-shell/src/pages/PayMePage.tsx | 263 | create (verbatim) |
+| apps/product-shell/src/pages/ReferralsPage.tsx | product-shell/src/pages/ReferralsPage.tsx | 271 | create (verbatim) |
+| apps/product-shell/src/pages/SkinMarketplacePage.tsx | product-shell/src/pages/SkinMarketplacePage.tsx | 430 | create (verbatim) |
+
+Subtotal: 11 files, 27301 bytes.
+
+### 12.6 Verification Against router.tsx Direct Imports
+
+| router.tsx import specifier | created_path | status |
+|---|---|---|
+| `../pages/HomePage` | apps/product-shell/src/pages/HomePage.tsx | present |
+| `../pages/MembersPage` | apps/product-shell/src/pages/MembersPage.tsx | present |
+| `../pages/AccessPage` | apps/product-shell/src/pages/AccessPage.tsx | present |
+| `../pages/AccessTier1Page` | apps/product-shell/src/pages/AccessTier1Page.tsx | present |
+| `../pages/AccessTier2Page` | apps/product-shell/src/pages/AccessTier2Page.tsx | present |
+| `../pages/AccessTier3Page` | apps/product-shell/src/pages/AccessTier3Page.tsx | present |
+| `../pages/PayMePage` | apps/product-shell/src/pages/PayMePage.tsx | present |
+| `../pages/EngagePage` | apps/product-shell/src/pages/EngagePage.tsx | present |
+| `../pages/ReferralsPage` | apps/product-shell/src/pages/ReferralsPage.tsx | present |
+| `../pages/SkinMarketplacePage` | apps/product-shell/src/pages/SkinMarketplacePage.tsx | present |
+| `../pages/AdminPage` | apps/product-shell/src/pages/AdminPage.tsx | present |
+
+All 11 direct page-module imports declared by `src/app/router.tsx` are now
+present at their declared paths. The `src/app/router.tsx` direct-import
+edge to `../pages/*` is closed.
+
+### 12.7 Out-of-Scope (still deferred after this pass)
+
+Per the dispatch directive "Do not expand beyond immediate router
+dependencies", the following baseline surfaces — discovered to be imported
+by the 11 reconstructed pages — are NOT created by this pass and remain
+classified `missing`:
+
+- `apps/product-shell/src/components/layout/PageShell.tsx`
+  (imported by all 11 pages)
+- `apps/product-shell/src/components/admin/AdminPanel.tsx`
+  (imported by AdminPage, AccessTier3Page)
+- `apps/product-shell/src/components/integrations/ModuleFrame.tsx`
+  (imported by EngagePage, PayMePage, ReferralsPage)
+- `apps/product-shell/src/features/payme/MemberBillingPanel.tsx`
+  (imported by AccessTier1Page)
+- `apps/product-shell/src/features/marketplace/state/cartStore.tsx`
+  (imported by SkinMarketplacePage)
+- `apps/product-shell/src/features/marketplace/pages/MarketplacePage.tsx`
+  (imported by SkinMarketplacePage)
+- `apps/product-shell/src/hooks/usePublishedExclusiveTiles.ts`
+  (imported by AccessTier2Page)
+- `apps/product-shell/src/utils/usdc.ts`
+  (imported by AccessTier2Page)
+
+Note: `../state/demoGateState` (imported by AccessTier2Page, AccessTier3Page)
+and `../runtime/exclusiveTileHydration` (type-only import in AccessTier2Page)
+are already present from §11 (asset reconstruction) and §4.x (runtime
+support) and need no further action in this pass.
+
+The remaining cascade above will continue to fail S5 verification at the
+next module-graph layer until a subsequent rebuild pass closes
+`src/components/`, `src/features/`, `src/hooks/`, and `src/utils/`.
+
+### 12.8 Build-Time Dependency Alert (unchanged)
+
+This append pass closes only the `src/app/router.tsx` → `../pages/*`
+direct-import cascade. The downstream cascade
+(`src/pages/* → ../components/*`, `../features/*`, `../hooks/*`,
+`../utils/*`) and the `build:engage` → `apps/modules/engage/` cascade are
+still present and will continue to fail S5 verification until those
+rebuild passes are executed.
+
+### 12.9 Reference Conflict Status
+
+The §8.1 (`pages_deployment_spec.md` deploy root mismatch) and §8.2
+(RB-INT-CHASSIS-001 fragment allowlist) conflicts logged in this manifest
+remain unresolved by this pass. They are documentation-level conflicts and
+do not affect file-system writes under `apps/product-shell/src/pages/`. The
+RB-INT-CHASSIS-002-specific `/job_site/full_parity_fragment_allowlist.md`
+(§0 Pass Scope) explicitly limits its allowlist to `modules/*` and
+explicitly excludes "any … product-shell app-root surface", so this pass
+is not constrained by that allowlist.
+
+### 12.10 Repo Mirror / Commit / Push Evidence
+
+| field | value |
+|---|---|
+| repo_mirror | yes — writes made to working tree at `/home/user/gateway-fullbody-freeze/apps/product-shell/src/pages/` |
+| commit_required | yes |
+| push_required | yes |
+| branch | claude/create-missing-assets-epdo4 |
+| commit_hash | (recorded post-commit; see git log) |
+| pushed_to | origin/claude/create-missing-assets-epdo4 |
+
+### 12.11 Checksum Pointers for Foreman B
+
+- Every created file is a byte-for-byte copy of its declared baseline source under `/tmp/baseline-freeze/product-shell/src/pages/`.
+- Scope lock is enforced — no file outside `apps/product-shell/src/pages/` was created, modified, or deleted in this append pass.
+- Every router.tsx direct page-import target is now present at the declared path.
+- `src/app/router.tsx` no longer has any direct missing import. Its remaining failure modes are documented in §12.7 and §12.8 and are unaffected by this pass.
