@@ -422,3 +422,61 @@ commands executed (no `npm install`, no `npm run build:engage`).
 | reached module graph transform | no — failure occurred at config-load time, before Rollup entered `src/` |
 | run branch | `claude/rebuild-product-shell-KIQNp` |
 | product-shell install executed | no (prerequisite was intentionally skipped per dispatch "Do not run any other commands") |
+
+---
+
+## 15. Appended Corrected vite-build Step (operator dispatch — resolve vite, re-run npx vite build)
+
+Task dispatch: ensure vite is resolvable for `apps/product-shell` build
+context (install or link deps so `vite.config.ts` can load), then run ONLY
+`npx vite build` and record the corrected result.
+
+### 15.1 Dependency resolution step
+
+| field | value |
+|---|---|
+| working directory | `/home/user/gateway-fullbody-freeze/apps/product-shell` |
+| command | `npm install --no-audit --no-fund` |
+| purpose | make `vite@^5.4.2` and `@vitejs/plugin-react@^4.3.1` resolvable inside `apps/product-shell/node_modules/` so `vite.config.ts` can load |
+| stdout (verbatim) | `added 70 packages in 9s` |
+| exit code | 0 |
+
+### 15.2 Corrected vite build step
+
+| field | value |
+|---|---|
+| working directory | `/home/user/gateway-fullbody-freeze/apps/product-shell` |
+| command | `npx vite build` |
+| resolved vite | `vite v5.4.21` (from local `apps/product-shell/node_modules/vite/`, not the npx cache vite@8.0.8) |
+| config loaded | yes — no `UNRESOLVED_IMPORT` warnings; no `failed to load config` error |
+| modules transformed | 32 |
+| exit code | 1 |
+| first error line | `Could not resolve "../components/nav/TopNav" from "src/app/AppShell.tsx"` |
+| failing file | `/home/user/gateway-fullbody-freeze/apps/product-shell/src/app/AppShell.tsx` |
+| reached module graph transform | yes — Rollup entered `src/`, transformed 32 modules, then halted at the first unresolved import |
+| dist produced | no |
+| run branch | `claude/rebuild-product-shell-KIQNp` |
+
+### 15.3 Delta from §5 (prior vite-direct probe on branch `claude/create-missing-assets-epdo4`)
+
+| item | prior run (§5) | this run (§15.2) |
+|---|---|---|
+| modules transformed | 13 | 32 |
+| first unresolved import | `../pages/HomePage` from `src/app/router.tsx` | `../components/nav/TopNav` from `src/app/AppShell.tsx` |
+
+Delta: the 11 page modules under `apps/product-shell/src/pages/` (committed
+in `c9c7454` "S3 route reconstruction: product-shell src/pages/") now resolve,
+advancing the module graph by 19 modules (11 pages + their CSS/state/mobile
+siblings already reached in the prior run). The failing edge has moved one
+hop sideways from `src/app/router.tsx → ../pages/*` to
+`src/app/AppShell.tsx → ../components/nav/TopNav`. The
+`apps/product-shell/src/components/` subtree does not exist and is still
+classified `missing` in `/job_site/missing_surface_matrix.yaml`.
+
+### 15.4 Cleanup
+
+| command | working dir | exit code |
+|---|---|---|
+| `rm -rf apps/product-shell/node_modules apps/product-shell/package-lock.json` | repo root | 0 |
+
+`git status` post-cleanup: clean (only the appended results edit pending).
