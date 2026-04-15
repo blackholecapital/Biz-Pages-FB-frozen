@@ -1,0 +1,318 @@
+# Module Surface Change Manifest — RB-INT-CHASSIS-002
+
+job_id: RB-INT-CHASSIS-002
+stage: S3
+pass: modules/engage reconstruction (worker_b)
+worker: worker_b
+authority: record of exact file-system changes made under apps/modules/engage/ for the engage microfrontend surface
+source_matrix: /job_site/missing_surface_matrix.yaml §module_packages (engage rows)
+source_manifest: /job_site/full_parity_target_path_manifest.yaml §SECTION 7 (engage rows)
+source_allowlist: /job_site/full_parity_fragment_allowlist.md §3 (engage)
+baseline_source: https://github.com/blackholecapital/gatweay-production-FREEZE (shallow clone at /tmp/baseline-freeze)
+
+---
+
+## 1. Scope Lock (enforced)
+
+This pass reconstructs exactly the `modules/engage` surfaces declared in the
+`/job_site/full_parity_fragment_allowlist.md` §3 (engage) allowlist. All files
+are byte-for-byte verbatim copies from the baseline repository under the
+chassis-native mapping `modules/engage/<rel>` → `apps/modules/engage/<rel>`
+with `<rel>` preserved exactly. No other module (`payme`, `referrals`, `vault`)
+and no product-shell, admin app, or chassis package is touched by this pass.
+
+Reconstruction of the engage package.json satisfies the
+`apps/product-shell/package.json` `build:engage` script contract
+(`npm --prefix ../modules/engage install --progress=false && npm --prefix ../modules/engage run build`),
+which resolves `../modules/engage` relative to `apps/product-shell/` as
+`apps/modules/engage/` per the chassis-native mapping declared in
+`/job_site/full_parity_target_path_manifest.yaml` §SECTION 7.
+
+---
+
+## 2. Change Set Summary
+
+| metric | value |
+|---|---|
+| files created | 31 |
+| files modified | 0 |
+| files deleted | 0 |
+| directories created | 10 |
+| module root | `apps/modules/engage` |
+| copy method | verbatim byte-for-byte from baseline `modules/engage/*` |
+| total bytes written | 438298 |
+
+---
+
+## 3. Directories Created
+
+- `apps/modules/`
+- `apps/modules/engage/`
+- `apps/modules/engage/src/`
+- `apps/modules/engage/src/admin/`
+- `apps/modules/engage/src/admin/pages/`
+- `apps/modules/engage/src/components/`
+- `apps/modules/engage/src/components/QuestBoard/`
+- `apps/modules/engage/src/lib/`
+- `apps/modules/engage/src/pages/`
+- `apps/modules/engage/src/styles/`
+- `apps/modules/engage/public/`
+
+---
+
+## 4. Files Created
+
+### 4.1 Package manifest (allowlist §3.1)
+
+| target_path | baseline_path | bytes | action |
+|---|---|---|---|
+| `apps/modules/engage/package.json` | `modules/engage/package.json` | 693 | create (verbatim) |
+
+Declared `name`: `engagefi-questboard`. `type`: `module`. `scripts`: `dev` (`vite`),
+`build` (`vite build`), `preview` (`vite preview`). Dependencies: `@emotion/react ^11.11.4`,
+`@emotion/styled ^11.11.5`, `@mui/icons-material ^5.15.21`, `@mui/material ^5.15.21`,
+`@supabase/supabase-js ^2.49.1`, `react ^18.3.1`, `react-dom ^18.3.1`,
+`react-hot-toast ^2.4.1`, `react-router-dom ^6.26.2`, `wagmi ^2.12.7`,
+`viem ^2.21.10`, `@tanstack/react-query ^5.59.0`. DevDependencies:
+`@vitejs/plugin-react ^4.3.1`, `vite ^5.4.2`. No `workspaces` field.
+No chassis package dependency. No cross-module dependency.
+
+### 4.2 Lockfile (allowlist §3.2)
+
+| target_path | baseline_path | bytes | action |
+|---|---|---|---|
+| `apps/modules/engage/package-lock.json` | `modules/engage/package-lock.json` | 371258 | create (verbatim) |
+
+Deterministic npm install lockfile, byte-equal to baseline. `lockfileVersion`
+preserved from baseline. Not regenerated or re-resolved.
+
+### 4.3 Vite build config (allowlist §3.3)
+
+| target_path | baseline_path | bytes | action |
+|---|---|---|---|
+| `apps/modules/engage/vite.config.js` | `modules/engage/vite.config.js` | 344 | create (verbatim) |
+
+Declares `base: '/apps/engage/'`, `plugins: [react()]`, `build.outDir:
+'../../public/apps/engage'`, `build.emptyOutDir: true`. No resolve alias into
+`packages/*` or `apps/product-shell/*`. No chassis package import. Plugins
+unchanged from baseline.
+
+### 4.4 HTML entrypoint (allowlist §3.4)
+
+| target_path | baseline_path | bytes | action |
+|---|---|---|---|
+| `apps/modules/engage/index.html` | `modules/engage/index.html` | 407 | create (verbatim) |
+
+Declares `<title>*** Engagefi ***</title>`, favicon link `./drop.png`,
+apple-touch-icon `./favicon.svg`, `<div id="root"></div>`,
+`<script type="module" src="/src/main.jsx"></script>`. Script reference
+unchanged from baseline.
+
+### 4.5 App bootstrap — src/main.jsx (allowlist §3.5)
+
+| target_path | baseline_path | bytes | action |
+|---|---|---|---|
+| `apps/modules/engage/src/main.jsx` | `modules/engage/src/main.jsx` | (baseline) | create (verbatim) |
+
+React root bootstrap. Import specifiers unchanged from baseline.
+
+### 4.6 App root component — src/App.jsx (allowlist §3.6)
+
+| target_path | baseline_path | bytes | action |
+|---|---|---|---|
+| `apps/modules/engage/src/App.jsx` | `modules/engage/src/App.jsx` | (baseline) | create (verbatim) |
+
+Top-level component. Import specifiers unchanged from baseline.
+
+### 4.7 Full source subtree — src/ (allowlist §3.7)
+
+Recursive byte-for-byte copy of `modules/engage/src/` into
+`apps/modules/engage/src/`. Baseline subtree layout preserved one-for-one.
+File count at target equals file count at baseline source (26 files, see note
+in §8 below on the 37-count discrepancy).
+
+| # | target_path | baseline_path |
+|---|---|---|
+| 1 | `apps/modules/engage/src/App.jsx` | `modules/engage/src/App.jsx` |
+| 2 | `apps/modules/engage/src/main.jsx` | `modules/engage/src/main.jsx` |
+| 3 | `apps/modules/engage/src/admin/AdminLayout.jsx` | `modules/engage/src/admin/AdminLayout.jsx` |
+| 4 | `apps/modules/engage/src/admin/pages/AdminCompletions.jsx` | `modules/engage/src/admin/pages/AdminCompletions.jsx` |
+| 5 | `apps/modules/engage/src/admin/pages/AdminQuests.jsx` | `modules/engage/src/admin/pages/AdminQuests.jsx` |
+| 6 | `apps/modules/engage/src/admin/pages/AdminUsers.jsx` | `modules/engage/src/admin/pages/AdminUsers.jsx` |
+| 7 | `apps/modules/engage/src/components/GameOverPanel.jsx` | `modules/engage/src/components/GameOverPanel.jsx` |
+| 8 | `apps/modules/engage/src/components/Navbar.jsx` | `modules/engage/src/components/Navbar.jsx` |
+| 9 | `apps/modules/engage/src/components/QuestBoard/CompleteMissionModal.jsx` | `modules/engage/src/components/QuestBoard/CompleteMissionModal.jsx` |
+| 10 | `apps/modules/engage/src/components/QuestBoard/QuestCard.jsx` | `modules/engage/src/components/QuestBoard/QuestCard.jsx` |
+| 11 | `apps/modules/engage/src/components/QuestBoard/QuestFilters.jsx` | `modules/engage/src/components/QuestBoard/QuestFilters.jsx` |
+| 12 | `apps/modules/engage/src/components/QuestBoard/SignatureFuturePanel.jsx` | `modules/engage/src/components/QuestBoard/SignatureFuturePanel.jsx` |
+| 13 | `apps/modules/engage/src/components/QuestBoard/TierProgress.jsx` | `modules/engage/src/components/QuestBoard/TierProgress.jsx` |
+| 14 | `apps/modules/engage/src/lib/questDefaults.js` | `modules/engage/src/lib/questDefaults.js` |
+| 15 | `apps/modules/engage/src/lib/questService.js` | `modules/engage/src/lib/questService.js` |
+| 16 | `apps/modules/engage/src/lib/questTypes.js` | `modules/engage/src/lib/questTypes.js` |
+| 17 | `apps/modules/engage/src/lib/supabaseClient.js` | `modules/engage/src/lib/supabaseClient.js` |
+| 18 | `apps/modules/engage/src/lib/userProgressService.js` | `modules/engage/src/lib/userProgressService.js` |
+| 19 | `apps/modules/engage/src/lib/wagmi.js` | `modules/engage/src/lib/wagmi.js` |
+| 20 | `apps/modules/engage/src/pages/QuestsPage.jsx` | `modules/engage/src/pages/QuestsPage.jsx` |
+| 21 | `apps/modules/engage/src/styles/AdminMuiOverrides.css` | `modules/engage/src/styles/AdminMuiOverrides.css` |
+| 22 | `apps/modules/engage/src/styles/GameOverBubble.css` | `modules/engage/src/styles/GameOverBubble.css` |
+| 23 | `apps/modules/engage/src/styles/Navbar.css` | `modules/engage/src/styles/Navbar.css` |
+| 24 | `apps/modules/engage/src/styles/PageShell.css` | `modules/engage/src/styles/PageShell.css` |
+| 25 | `apps/modules/engage/src/styles/Scanlines.css` | `modules/engage/src/styles/Scanlines.css` |
+| 26 | `apps/modules/engage/src/styles/WireframeCard.css` | `modules/engage/src/styles/WireframeCard.css` |
+
+Subtree verified via `diff -r /tmp/baseline-freeze/modules/engage/src
+/home/user/gateway-fullbody-freeze/apps/modules/engage/src` → no differences.
+
+### 4.8 Static redirects (allowlist §3.8)
+
+| target_path | baseline_path | bytes | action |
+|---|---|---|---|
+| `apps/modules/engage/public/_redirects` | `modules/engage/public/_redirects` | 19 | create (verbatim) |
+
+Declared rule: `/* /index.html 200` (SPA fallback for standalone serving).
+Not merged with `apps/product-shell/public/_redirects`.
+
+---
+
+## 5. Verification Against S3 Worker B Expected Artifacts
+
+| expected_artifact | created_path | status |
+|---|---|---|
+| `apps/modules/engage/package.json` | `apps/modules/engage/package.json` | present |
+| `apps/modules/engage/src/` | `apps/modules/engage/src/` (26 files) | present |
+| `/job_site/module_surface_change_manifest.md` (append engage reconstruction) | `/job_site/module_surface_change_manifest.md` | present (this file) |
+
+Build contract `build:engage` precondition: `apps/modules/engage/package.json`
+exists at the chassis-native path resolved by `../modules/engage` relative to
+`apps/product-shell/`. Satisfied.
+
+---
+
+## 6. Allowlist Cross-Reference Lock
+
+Every file created by this pass corresponds to exactly one row in
+`/job_site/full_parity_fragment_allowlist.md` §3 and one row in
+`/job_site/full_parity_target_path_manifest.yaml` §SECTION 7 (engage) and
+one row in `/job_site/missing_surface_matrix.yaml` §module_packages (engage)
+with `deploy_critical: yes`.
+
+| allowlist § | target | status |
+|---|---|---|
+| 3.1 | `apps/modules/engage/package.json` | created |
+| 3.2 | `apps/modules/engage/package-lock.json` | created |
+| 3.3 | `apps/modules/engage/vite.config.js` | created |
+| 3.4 | `apps/modules/engage/index.html` | created |
+| 3.5 | `apps/modules/engage/src/main.jsx` | created (subtree) |
+| 3.6 | `apps/modules/engage/src/App.jsx` | created (subtree) |
+| 3.7 | `apps/modules/engage/src/` (full tree) | created (26 files) |
+| 3.8 | `apps/modules/engage/public/_redirects` | created |
+
+---
+
+## 7. Explicitly Blocked Items Not Copied (allowlist §4)
+
+The following baseline items exist under `modules/engage/` but are NOT copied
+by this pass, per `/job_site/full_parity_fragment_allowlist.md` §4:
+
+| blocked item | reason |
+|---|---|
+| `modules/engage/supabase_schema.sql` | §4 B1 — `deploy_critical: no` per missing_surface_matrix.yaml §module_packages; runtime_support only |
+| `modules/engage/README.md` | §4 B2/B7 — outside allowlist §3 scope; not a deploy-critical fragment |
+| `modules/engage/TEMPLATE_REPORT.txt` | §4 B2/B7 — outside allowlist §3 scope; not a deploy-critical fragment |
+| `modules/engage/drop.png` | §4 B2/B7 — referenced by baseline `index.html` (`./drop.png`) but not declared as a deploy_critical row in missing_surface_matrix.yaml §module_packages and not listed in allowlist §3; see §8.2 below for the flagged reference |
+| `modules/engage/public/wallpaper333.png` | §4 B2/B7 — not declared in allowlist §3.8 (which authorizes only `public/_redirects`) and not a deploy_critical row in missing_surface_matrix.yaml §module_packages |
+
+No chassis package import was injected into any copied file. No cross-module
+import path was injected. No file was renamed, restructured, or omitted from
+the `src/` subtree relative to baseline.
+
+---
+
+## 8. Discrepancies Flagged (non-blocking for this pass)
+
+### 8.1 `src/` file count: baseline 26 vs. matrix-declared 37
+
+`/job_site/missing_surface_matrix.yaml` §module_packages notes for
+`modules/engage/src/ (full tree)` declares `(37 files)` and
+`/job_site/full_parity_fragment_allowlist.md` §3.7 restates
+`(37 files per missing_surface_matrix.yaml)`. The actual baseline repository
+at `https://github.com/blackholecapital/gatweay-production-FREEZE` under
+`modules/engage/src/` contains **26** source files across
+`admin/`, `components/`, `lib/`, `pages/`, `styles/`, plus `main.jsx` and
+`App.jsx` at `src/` root.
+
+Resolution applied for this pass: verbatim subtree copy of the actual
+baseline contents (26 files). The "37 files" figure in the source matrix
+notes is treated as an inventory miscount from an earlier S1 pass. No files
+were invented to reach the 37 count (forbidden by allowlist §4 B7).
+
+Recommend Foreman B / Factory Control Interface update the matrix note to
+`(26 files)` or reconcile with the authoritative baseline enumeration before
+S5 build verification signs off the parity matrix. This discrepancy does NOT
+block the `build:engage` script, since the build script only requires a
+valid `package.json` + `src/` subtree at `apps/modules/engage/`, which are
+now present.
+
+### 8.2 `index.html` references `./drop.png` but allowlist does not list it
+
+Baseline `modules/engage/index.html` declares
+`<link rel="icon" href="./drop.png" type="image/svg+xml">` and
+`<link rel="apple-touch-icon" href="./favicon.svg">`. The baseline file
+`modules/engage/drop.png` exists at the module root but is NOT declared in
+`/job_site/missing_surface_matrix.yaml` §module_packages and NOT listed in
+`/job_site/full_parity_fragment_allowlist.md` §3. `favicon.svg` does not
+exist in the baseline tree at all.
+
+Resolution applied for this pass: `drop.png` and `favicon.svg` are NOT
+copied, per strict allowlist enforcement (allowlist §4 B2/B7). The runtime
+effect is two 404 requests for the favicon assets when `index.html` is
+served standalone; these are non-blocking for the build step itself
+(`vite build` does not require the favicon files to exist) and non-blocking
+for the `build:engage` script. If a later pass declares `drop.png` as a
+deploy-critical row in the source matrix, a separate allowlist entry and
+copy pass will be required.
+
+Recommend Foreman B note this as a deferred surface for a possible S3b or
+S4 extension pass.
+
+---
+
+## 9. Out-of-Scope (deferred — not touched by this pass)
+
+The following baseline surfaces remain classified `missing` in
+`/job_site/missing_surface_matrix.yaml` and are NOT created by this pass:
+
+- `modules/payme/` — reconstruction deferred to a later S3 worker_b pass
+- `modules/referrals/` — reconstruction deferred to a later S3 worker_b pass
+- `modules/vault/` — reconstruction deferred to a later S3 worker_b pass
+- `engagefi-admin-minimal/`, `payme-admin-minimal/`, `referral-admin-minimal/` — standalone admin apps deferred
+- `apps/product-shell/src/components/`, `src/pages/`, `src/features/`, `src/hooks/`, `src/integrations/`, `src/state/`, `src/styles/`, `src/utils/`, `src/config/`, `src/contracts/`, `src/mobile/` — product-shell subtree extensions deferred (partially covered by S4 worker_a runtime pass)
+- `apps/product-shell/public/ads/`, `public/apps/`, `public/demo/`, `public/wallpapers/`, `drip.png` — product-shell public assets deferred
+- `apps/product-shell/tests/microfrontend/` — tests deferred
+- `production/`, `resolver-boundary/`, `variation-control/`, `_review-required/` — support trees deferred
+- `modules/engage/supabase_schema.sql` — `deploy_critical: no`
+- `modules/engage/README.md`, `TEMPLATE_REPORT.txt`, `drop.png`, `public/wallpaper333.png` — outside allowlist §3
+
+---
+
+## 10. Repo Mirror / Commit / Push Evidence
+
+| field | value |
+|---|---|
+| repo_mirror | yes — writes made to working tree at `/home/user/gateway-fullbody-freeze/apps/modules/engage/` |
+| commit_required | yes |
+| push_required | yes |
+| branch | `claude/reconstruct-engage-modules-OdQZM` |
+| commit_hash | (recorded post-commit; see git log) |
+| pushed_to | `origin/claude/reconstruct-engage-modules-OdQZM` |
+
+---
+
+## 11. Checksum Pointers for Foreman B
+
+- Every allowlisted fragment in `/job_site/full_parity_fragment_allowlist.md` §3 (engage) now has a corresponding file at the chassis-native target path under `apps/modules/engage/`.
+- Every created file is a byte-for-byte copy of its declared baseline source (`diff -r` and per-file `diff` verification passed for all 31 files).
+- Scope lock is enforced — no file outside `apps/modules/engage/` was created, modified, or deleted by this pass.
+- No chassis package import, no cross-module import, and no path rewrite was introduced.
+- Two discrepancies (§8.1 src file count, §8.2 index.html favicon reference) are flagged but did NOT block execution because the `build:engage` script contract (valid `package.json` + `src/` subtree at `apps/modules/engage/`) is satisfied.
+- Build-time verification of `npm --prefix apps/modules/engage install` and `npm --prefix apps/modules/engage run build` is OUT OF SCOPE for this S3 worker_b pass and is deferred to S5 build verification.
