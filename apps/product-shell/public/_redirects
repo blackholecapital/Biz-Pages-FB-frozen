@@ -1,0 +1,6 @@
+/apps/payme/*    /apps/payme/index.html    200
+/apps/engage/*   /apps/engage/index.html   200
+/apps/referrals/* /apps/referrals/index.html 200
+/apps/vault/*    /apps/vault/index.html    200
+
+/*    /index.html   200
