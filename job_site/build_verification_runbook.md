@@ -2,13 +2,13 @@
 
 job_id: RB-INT-CHASSIS-002
 stage: S5 (build verification)
-dispatched_as: S3 task header (operator dispatch)
+dispatched_as: S3 task header (operator dispatch — re-run)
 worker: worker_a
 authority: exact procedure for running install and build from the declared deploy root
 references:
   - /job_site/deploy_root_plan.md
   - /job_site/pages_deployment_spec.md
-  - /job_site/build-sheet-RB-INT-CHASSIS-002.txt
+  - /job_site/worker-execution-manual-v1.1.txt
 
 ---
 
@@ -70,7 +70,7 @@ Contract (per `/job_site/pages_deployment_spec.md` §2): install_command is
 non-semantic noise suppression flags that do not change the resolved package
 graph.
 
-### Step 3 — build
+### Step 3 — build (primary path)
 
 Command:
 
@@ -78,11 +78,22 @@ Command:
 npm run build
 ```
 
-Contract (per `/job_site/pages_deployment_spec.md` §2 and baseline
-`apps/product-shell/package.json` `scripts.build`): resolves to
-`npm run build:engage && vite build`. `build:engage` resolves to
+Contract (per baseline `apps/product-shell/package.json` `scripts.build`):
+resolves to `npm run build:engage && vite build`. `build:engage` resolves to
 `npm --prefix ../modules/engage install --progress=false && npm --prefix ../modules/engage run build`
 which requires a sibling `apps/modules/engage/` directory to exist.
+
+### Step 3b — build (secondary probe, direct vite)
+
+Command:
+
+```
+npx vite build
+```
+
+Run only if Step 3 fails before reaching `vite build`, to determine whether
+the post-engage `vite build` would succeed independently and to surface any
+remaining Rollup module-graph resolution failures inside `apps/product-shell/src/`.
 
 ### Step 4 — verify output directory
 
@@ -101,6 +112,7 @@ Install artifacts are NOT committed to the repo. After verification:
 
 ```
 rm -rf apps/product-shell/node_modules
+rm -rf apps/product-shell/dist
 rm -f  apps/product-shell/package-lock.json
 rm -rf apps/modules
 ```
@@ -118,6 +130,7 @@ when the engage prefix path does not exist.)
 | FAIL (install) | Step 2 exits non-zero. |
 | FAIL (engage) | Step 2 exits 0 but `build:engage` sub-step exits non-zero. |
 | FAIL (vite) | `build:engage` completes but `vite build` exits non-zero. |
+| FAIL (vite-direct) | Step 3b `npx vite build` exits non-zero at Rollup module-graph resolution. |
 | FAIL (output) | Commands exit 0 but expected output artifacts are absent. |
 
 Any FAIL case is recorded verbatim in `/job_site/build_verification_results.md`
@@ -131,5 +144,5 @@ command.
 Per task dispatch: `repo_mirror_required: no`, `commit_required: no`,
 `push_required: no`. This runbook and its results file are written to
 `/job_site/` only. No repo writes under `apps/` are performed by this step.
-Install artifacts (`node_modules/`, `package-lock.json`) are local-only and
-are removed by Step 5.
+Install artifacts (`node_modules/`, `package-lock.json`, `dist/`) are
+local-only and are removed by Step 5.
