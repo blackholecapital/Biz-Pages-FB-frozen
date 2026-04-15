@@ -62,6 +62,9 @@ export const ROUTE_IDS = {
   CHASSIS_UPDATE: "rt.chassis.update",
   CHASSIS_DISABLE: "rt.chassis.disable",
   CHASSIS_REMOVE: "rt.chassis.remove",
+  // RB-INT-CHASSIS-001 — admin panel routes on sf.api.factory
+  PAYME_ADMIN: "rt.payme.admin",
+  REFERRAL_ADMIN: "rt.referral.admin",
 } as const;
 export type RouteId = (typeof ROUTE_IDS)[keyof typeof ROUTE_IDS];
 
@@ -72,6 +75,11 @@ export const TOUCHPOINT_IDS = {
   CLI_UPDATE: "tp.cli.update",
   API_DISABLE: "tp.api.disable",
   API_REMOVE: "tp.api.remove",
+  // RB-INT-CHASSIS-001 — admin panel touchpoints
+  CLI_PAYME_ADMIN: "tp.cli.payme.admin",    // sf.cli.factory — operator-shell
+  CLI_REFERRAL_ADMIN: "tp.cli.referral.admin", // sf.cli.factory — operator-shell
+  API_PAYME_ADMIN: "tp.api.payme.admin",    // sf.api.factory — web-public
+  API_REFERRAL_ADMIN: "tp.api.referral.admin", // sf.api.factory — web-public
 } as const;
 export type TouchpointId = (typeof TOUCHPOINT_IDS)[keyof typeof TOUCHPOINT_IDS];
 
@@ -82,6 +90,9 @@ export const TRIGGER_IDS = {
   CHASSIS_UPDATE: "trg.chassis.update",
   CHASSIS_DISABLE: "trg.chassis.disable",
   CHASSIS_REMOVE: "trg.chassis.remove",
+  // RB-INT-CHASSIS-001 — admin panel triggers
+  PAYME_ADMIN: "trg.payme.admin",
+  REFERRAL_ADMIN: "trg.referral.admin",
 } as const;
 export type TriggerId = (typeof TRIGGER_IDS)[keyof typeof TRIGGER_IDS];
 
@@ -100,6 +111,13 @@ export const EVENT_IDS = {
   CHASSIS_REMOVE_REQUESTED: "evt.chassis.remove.requested",
   CHASSIS_REMOVE_COMPLETED: "evt.chassis.remove.completed",
   CHASSIS_REMOVE_FAILED: "evt.chassis.remove.failed",
+  // RB-INT-CHASSIS-001 — admin panel events
+  PAYME_ADMIN_REQUESTED: "evt.payme.admin.requested",
+  PAYME_ADMIN_COMPLETED: "evt.payme.admin.completed",
+  PAYME_ADMIN_FAILED: "evt.payme.admin.failed",
+  REFERRAL_ADMIN_REQUESTED: "evt.referral.admin.requested",
+  REFERRAL_ADMIN_COMPLETED: "evt.referral.admin.completed",
+  REFERRAL_ADMIN_FAILED: "evt.referral.admin.failed",
 } as const;
 export type EventId = (typeof EVENT_IDS)[keyof typeof EVENT_IDS];
 
@@ -107,6 +125,9 @@ export type EventId = (typeof EVENT_IDS)[keyof typeof EVENT_IDS];
 // Used by: Module.module_id.
 export const MODULE_IDS = {
   CHASSIS_CORE: "mod.chassis.core",
+  // RB-INT-CHASSIS-001 — admin panel modules
+  PAYME_ADMIN: "mod.payme.admin",
+  REFERRAL_ADMIN: "mod.referral.admin",
 } as const;
 export type ModuleId = (typeof MODULE_IDS)[keyof typeof MODULE_IDS];
 
