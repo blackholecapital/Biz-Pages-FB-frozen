@@ -413,3 +413,131 @@ Zero code files modified. Zero `package.json` files modified. Zero new modules, 
 - `npm --prefix ../modules/engage pkg get name` exits 0 and returns `"engagefi-questboard"` from CWD `apps/product-shell/` (verified in §12.4.5 above).
 - No workspace configuration is present in any `package.json` on this branch; workspace-based resolution is NOT in use and is forbidden by `/job_site/full_parity_fragment_allowlist.md` §3.1.
 - No corrective action was taken or required. The re-dispatch closes as a verification-only pass with **no module, script, path, or workspace change**.
+
+---
+
+## 13. modules/payme Minimal-Unblock Reconstruction (S3 worker_b re-dispatch)
+
+job_id: RB-INT-CHASSIS-002
+stage: S3 (re-dispatch — PATCH-RB002-014 minimal unblock)
+worker: worker_b
+authority: non-authoritative — derived from /job_site/full_parity_target_path_manifest.yaml §SECTION 7 (modules/payme), /job_site/patch_register.md §2.1 (PATCH-RB002-014), and the S3 re-dispatch task header
+document_role: Record the minimal-unblock reconstruction of `apps/modules/payme/` — package.json (verbatim baseline) + a deliberate non-baseline stub entrypoint at `src/index.jsx`. Full subtree reconstruction is NOT performed by this pass and remains open.
+
+### 13.1 Scope Declaration
+
+This pass creates the minimum set of files required by the S3 re-dispatch task header:
+
+- `apps/modules/payme/package.json` — verbatim byte-for-byte copy of baseline `modules/payme/package.json`
+- `apps/modules/payme/src/index.jsx` — deliberate non-baseline minimal ESM stub
+
+It does NOT create:
+
+- `apps/modules/payme/vite.config.js` (allowlist §8.2 — full reconstruction)
+- `apps/modules/payme/index.html` (allowlist §8.3 — full reconstruction)
+- `apps/modules/payme/src/` full baseline subtree (allowlist §8.4 — 30 files across `components/`, `config/`, `pages/`, `services/`, `styles/`, `utils/`, plus `App.jsx` and `main.jsx` at src/ root)
+- `apps/modules/payme/public/` assets (not in allowlist §8)
+
+### 13.2 Deviation from Strict Allowlist (noted)
+
+`/job_site/full_parity_fragment_allowlist.md` §8 declares the full payme allowlist (8.1 through 8.4) and §4 B7 blocks "any file that does not exist in the baseline archive". Strictly interpreted, §4 B7 would block `src/index.jsx` (which is not a baseline file — the baseline uses `src/main.jsx` as the entry).
+
+This pass DEVIATES from §4 B7 for one specific file (`src/index.jsx`) under the explicit authority of the S3 re-dispatch task header, which names `apps/modules/payme/src/index.*` as an expected artifact for a "minimal unblock only" and declares "(no full subtree)". The deviation is scoped to exactly one file and is NOT a general relaxation of §4 B7 for any other payme fragment, any other module, or any future pass. The stub file's content explicitly declares its non-baseline status in a leading comment block and references PATCH-RB002-014 as the tracking item for its eventual replacement.
+
+An alternative that would have avoided the deviation is to copy the baseline `src/main.jsx` verbatim. This alternative was rejected because `main.jsx` imports from `./App.jsx`, `./services/usdcTransfer.js`, and `./styles/global.css`, all of which belong to the 30-file `src/` subtree that the re-dispatch explicitly excludes ("no full subtree"). Copying `main.jsx` alone would produce a broken import graph, while copying the full subtree would violate the "no full subtree" constraint. A minimal non-baseline stub is the only path that satisfies both constraints simultaneously.
+
+This deviation is recorded here and flagged for Foreman B awareness. Any S3 worker_b full-reconstruction pass against allowlist §8.4 MUST delete `src/index.jsx` before writing the baseline subtree — the baseline does not declare a file at that path.
+
+### 13.3 Change Set Summary
+
+| metric | value |
+|---|---|
+| files created | 2 |
+| files modified | 0 |
+| files deleted | 0 |
+| directories created | 2 |
+| module root | `apps/modules/payme` |
+| copy method | §13.3.1 verbatim baseline for package.json; §13.3.2 new stub for src/index.jsx |
+| total bytes written | 1648 |
+
+### 13.3.1 Files Created — package.json (verbatim baseline)
+
+| target_path | baseline_path | bytes | action |
+|---|---|---|---|
+| `apps/modules/payme/package.json` | `modules/payme/package.json` | 492 | create (verbatim) |
+
+Declared `name`: `usdc.xyz-labs.xyz`. `private`: true. `version`: `0.0.0`. `type`: `module`. `scripts`: `dev` (`vite`), `build` (`vite build`), `preview` (`vite preview`). Dependencies: `react ^18.3.1`, `react-dom ^18.3.1`, `@tanstack/react-query ^5.62.0`, `wagmi ^2.12.5`, `viem ^2.21.1`, `buffer ^6.0.3`, `process ^0.11.10`. DevDependencies: `@vitejs/plugin-react ^4.3.1`, `vite ^5.4.8`. No `workspaces` field. No chassis package dependency. No cross-module dependency.
+
+Byte-equal to `/tmp/baseline-freeze/modules/payme/package.json` (verified via `diff`).
+
+### 13.3.2 Files Created — src/index.jsx (non-baseline stub)
+
+| target_path | baseline_path | bytes | action |
+|---|---|---|---|
+| `apps/modules/payme/src/index.jsx` | (none — non-baseline stub) | 1156 | create (stub) |
+
+Content: leading comment block declaring non-baseline status and PATCH-RB002-014 tracking reference, followed by a named export `paymeModuleStub` (object with `name`, `status`, `reason` fields) and a default export of the same object. No React import, no DOM import, no CSS import, no import from any `./services/*` or `./styles/*` path. No `document.getElementById('root')` call. The file parses as valid ESM under `"type": "module"` (required by the declared payme package.json `type` field).
+
+### 13.4 Directories Created
+
+- `apps/modules/payme/` (new)
+- `apps/modules/payme/src/` (new)
+
+### 13.5 Expected-Artifact Verification
+
+| expected_artifact (from S3 re-dispatch header) | created_path | status |
+|---|---|---|
+| `apps/modules/payme/package.json` | `apps/modules/payme/package.json` | present (verbatim) |
+| `apps/modules/payme/src/index.*` | `apps/modules/payme/src/index.jsx` | present (stub) |
+| `/job_site/module_surface_change_manifest.md` (append payme minimal reconstruction) | this section §13 appended | present |
+
+### 13.6 What This Unblocks and What It Does NOT
+
+**Unblocks (partial):**
+
+- Parity row 7.12 `apps/modules/payme/` — transitions from MISSING to PRESENT (directory exists)
+- Parity row 7.13 `apps/modules/payme/package.json` — transitions from MISSING to PRESENT (verbatim baseline)
+- Parity row 7.16 `apps/modules/payme/src/` — transitions from MISSING to PRESENT (directory exists)
+- `npm install` as a standalone install unit from `apps/modules/payme/` — resolvable (package.json exists with declared dependencies)
+- Future cross-references to the payme module by path (e.g., workspace-style resolvers or tooling that merely checks "does `apps/modules/payme/package.json` exist") — resolvable
+
+**Does NOT unblock:**
+
+- Parity row 7.14 `apps/modules/payme/vite.config.js` — still MISSING
+- Parity row 7.15 `apps/modules/payme/index.html` — still MISSING
+- Parity row 7.17 `apps/modules/payme/src/` full subtree (30 files) — still MISSING (1 stub file in place, not counted toward baseline parity)
+- `npm run build` (or `vite build`) from `apps/modules/payme/` — would FAIL because `vite.config.js` and `index.html` are absent and `src/index.jsx` is a stub that is not referenced by any baseline `index.html`
+- Any `build:payme` script in `apps/product-shell/package.json` — none exists; the product-shell build only invokes `build:engage`. PATCH-RB002-014 does NOT block the product-shell build chain; it blocks parity completeness (SECTION 7) only
+- PATCH-RB002-014 full closure — the full unblock condition "every row in `parity_verification_matrix.md` §9 transitions from MISSING to PRESENT" is NOT satisfied. This pass transitions 3 of 6 §9 rows; 3 remain MISSING
+
+### 13.7 Patch Register Delta
+
+`/job_site/patch_register.md` PATCH-RB002-014 transitions from **CRITICAL — open** to **CRITICAL — partial (minimal unblock applied)**. The unblock condition is updated but NOT fully cleared:
+
+- **prior unblock condition:** "every row in parity_verification_matrix.md §9 transitions from MISSING to PRESENT"
+- **current state:** 3 of 6 §9 rows PRESENT (7.12 dir, 7.13 package.json, 7.16 src/ dir); 3 rows still MISSING (7.14 vite.config.js, 7.15 index.html, 7.17 full subtree)
+- **remaining unblock condition:** the 3 still-MISSING §9 rows require a later S3 worker_b full-reconstruction pass against allowlist §8
+
+This pass does NOT close PATCH-RB002-014. Foreman B should update the register entry to reflect the partial-minimal state at the next S5 re-evaluation cycle.
+
+Note that the parity verification matrix row 7.17 explicitly declares `src/ (full subtree — 30 files)`, meaning the single-file stub at `src/index.jsx` is NOT counted as partial satisfaction of row 7.17. The stub is effectively "out-of-band" parity content — PRESENT on disk, not counted by the matrix row.
+
+### 13.8 Out-of-Scope (deferred — not touched by this pass)
+
+- baseline `modules/payme/src/main.jsx` (entry referenced by baseline `index.html`)
+- baseline `modules/payme/src/App.jsx` and the rest of the 30-file subtree
+- baseline `modules/payme/vite.config.js`
+- baseline `modules/payme/index.html`
+- baseline `modules/payme/public/wallpaper333.png`, `modules/payme/public/xyz-watermark.png`
+- baseline `modules/payme/README.md`, `TEMPLATE_REPORT.txt`, `drop.png`
+
+All remain classified `missing` in `/job_site/missing_surface_matrix.yaml` §module_packages and tracked under PATCH-RB002-014 remaining rows.
+
+### 13.9 Checksum Pointers for Foreman B (payme minimal pass)
+
+- `apps/modules/payme/package.json` is byte-equal to baseline `/tmp/baseline-freeze/modules/payme/package.json` (492 bytes).
+- `apps/modules/payme/src/index.jsx` is a deliberate non-baseline stub (1156 bytes) declared in §13.2 and flagged for deletion/replacement by any subsequent full-reconstruction pass.
+- No file outside `apps/modules/payme/` was created, modified, or deleted by this pass.
+- No chassis package import, no cross-module import, no workspace configuration, and no path rewrite was introduced.
+- No existing declaration in `/job_site/full_parity_fragment_allowlist.md`, `/job_site/full_parity_target_path_manifest.yaml`, or `/job_site/missing_surface_matrix.yaml` was modified. The allowlist deviation at §13.2 is a one-file exception authorized by the S3 re-dispatch task header, not a document change.
+- PATCH-RB002-014 is PARTIAL, not CLOSED. Full closure requires a subsequent S3 worker_b full-reconstruction pass.
