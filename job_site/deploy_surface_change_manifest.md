@@ -779,3 +779,178 @@ constrained by that allowlist.
 - `src/app/AppShell.tsx → ../components/nav/TopNav` is now resolvable; the `src/app/AppShell.tsx` direct-import edge to `../components/nav/*` is closed.
 - The remaining cascade (`src/pages/* → ../components/layout/*` and siblings) is unchanged and is the next failing edge per §13.8.
 - Because no baseline archive is available on the attached file system, the file is a minimal chassis-native stub (§13.7) and NOT a byte-for-byte baseline copy. This divergence from §11/§12 reconstruction method is noted here for Foreman B adjudication.
+
+---
+
+## 14. Append — Layout Subtree Reconstruction Pass (S3 follow-up)
+
+job_id: RB-INT-CHASSIS-002
+stage: S3
+pass: deploy app layout reconstruction (`src/components/layout/` — all 11 pages' direct PageShell dependency)
+worker: worker_a
+branch: claude/rebuild-product-shell-KIQNp
+authority: record of the file-system change made under `apps/product-shell/src/components/layout/` to satisfy the missing `PageShell` import flagged post-§13 by `npx vite build` ("Could not resolve `../components/layout/PageShell` from `src/pages/HomePage.tsx`").
+
+### 14.1 Trigger
+
+Post-§13 `npx vite build` from `/home/user/gateway-fullbody-freeze/apps/product-shell`
+advanced from 32 modules transformed to 32+ and then failed at:
+
+```
+Could not resolve "../components/layout/PageShell" from "src/pages/HomePage.tsx"
+```
+
+Eleven pages import `PageShell` at the same import specifier (§12.7, §13.9):
+
+```
+import { PageShell } from "../components/layout/PageShell";
+```
+
+(from `HomePage.tsx`, `MembersPage.tsx`, `AccessPage.tsx`, `AccessTier1Page.tsx`,
+`AccessTier2Page.tsx`, `AccessTier3Page.tsx`, `PayMePage.tsx`, `EngagePage.tsx`,
+`ReferralsPage.tsx`, `SkinMarketplacePage.tsx`, `AdminPage.tsx`)
+
+This append documents the reconstruction of exactly that one module (and
+any direct sibling it imports from within `src/components/layout/`). Per
+task dispatch, the cascade beyond `src/components/layout/` (into
+`src/features/*`, `src/components/admin/*`, `src/components/integrations/*`,
+`src/components/tenant/*`, …) is **not** expanded by this pass.
+
+### 14.2 Scope Lock (enforced)
+
+Created exactly the single page-direct layout module:
+
+- `apps/product-shell/src/components/layout/PageShell.tsx`
+
+PageShell's own import list is recorded in §14.6. It imports zero modules
+from inside `src/components/layout/`, so no additional files under that
+subtree were required by this pass. All other missing `src/components/*`
+subtrees (`admin/`, `gate/`, `integrations/`, `tenant/`) remain classified
+`missing` in `/job_site/missing_surface_matrix.yaml` and are untouched by
+this pass. `src/components/layout/WallpaperLayer.tsx` (baseline_inventory.md
+line 179) is NOT created by this pass because PageShell imports zero
+sibling files from `src/components/layout/`; it is deferred to a later
+baseline-archive-anchored pass.
+
+### 14.3 Change Set Summary
+
+| metric | value |
+|---|---|
+| files created | 1 |
+| files modified | 0 |
+| files deleted | 0 |
+| directories created | 1 (`src/components/layout/`) |
+| total bytes written | 376 |
+| reconstruction method | minimal chassis-native stub (no baseline archive available; content authored against existing `src/styles/shell.css` class contract `.pageShell`, `.wallpaperLayer`, `.wallpaperImage`; see §14.7) |
+
+### 14.4 Directories Created
+
+- `apps/product-shell/src/components/layout/`
+
+### 14.5 Files Created
+
+| target_path | bytes | action |
+|---|---|---|
+| apps/product-shell/src/components/layout/PageShell.tsx | 376 | create (minimal chassis-native stub) |
+
+### 14.6 PageShell Direct Import List (verified no layout-subtree siblings)
+
+```
+import type { ReactNode } from "react";
+```
+
+| import specifier | resolves to | status |
+|---|---|---|
+| `react` (type-only `ReactNode`) | `apps/product-shell/node_modules/react/` (declared dep `^18.3.1`) | external, resolvable |
+
+PageShell imports zero modules from `src/components/layout/*` or from any
+other `src/components/*` subtree. No sibling file under
+`src/components/layout/` was required or created by this pass.
+
+### 14.7 Reconstruction Rationale (no baseline archive)
+
+- The baseline archive directory `/job_site/gateway-production-freeze/`
+  is empty at HEAD (contains only `.keep`); no byte-for-byte baseline copy
+  of `product-shell/src/components/layout/PageShell.tsx` is available on
+  the attached file system.
+- The minimal reconstruction uses only:
+  - class names already declared in `apps/product-shell/src/styles/shell.css`
+    (`.pageShell`, `.wallpaperLayer`, `.wallpaperImage`);
+  - the public React type `ReactNode` for the `children` prop.
+- The reconstruction introduces no new subtree imports, no new external
+  dependencies, no chassis surface, and no new CSS classes. It satisfies
+  the `{HomePage,MembersPage,Access*Page,PayMePage,EngagePage,ReferralsPage,SkinMarketplacePage,AdminPage}.tsx → ../components/layout/PageShell`
+  direct-import edge without touching any other module.
+- The baseline-faithful content (wallpaper source resolution,
+  per-page-key background swap, scroll behavior, top-nav offset) is not
+  reconstructed by this pass and is deferred to a later baseline-archive-anchored
+  pass. The minimal stub is sufficient for S5 `npx vite build` to advance
+  past the `components/layout/PageShell` failing edge.
+
+### 14.8 Verification Against Page Imports
+
+Post-write `npx vite build` probe (from
+`/home/user/gateway-fullbody-freeze/apps/product-shell`, after
+`npm install`):
+
+- `✓ 41 modules transformed.` (advanced from 32 modules in §13.8).
+- The error `Could not resolve "../components/layout/PageShell" from "src/pages/HomePage.tsx"`
+  no longer occurs.
+- The build now fails one hop deeper, at:
+  `Could not resolve "../features/marketplace/state/cartStore" from "src/pages/SkinMarketplacePage.tsx"`
+  — confirming the layout import resolved for all 11 pages and the failing
+  edge has advanced from `src/pages/HomePage.tsx → ../components/layout/PageShell`
+  to `src/pages/SkinMarketplacePage.tsx → ../features/marketplace/state/cartStore`.
+
+### 14.9 Out-of-Scope (still deferred after this pass)
+
+Per the dispatch directive "Do not expand beyond layout subtree", the
+following baseline surfaces — known to be imported transitively by the
+11 reconstructed pages (§12.7, §13.9) — are NOT created by this pass and
+remain classified `missing`:
+
+- `apps/product-shell/src/components/layout/WallpaperLayer.tsx`
+  (baseline_inventory.md line 179; not imported by the minimal PageShell stub)
+- `apps/product-shell/src/components/admin/AdminPanel.tsx`
+  (imported by AdminPage, AccessTier3Page)
+- `apps/product-shell/src/components/gate/*`
+- `apps/product-shell/src/components/integrations/ModuleFrame.tsx`
+  (imported by EngagePage, PayMePage, ReferralsPage)
+- `apps/product-shell/src/components/tenant/ExclusiveContentRenderer.tsx`
+- `apps/product-shell/src/components/tenant/ExclusiveTileGrid.tsx`
+- `apps/product-shell/src/features/payme/MemberBillingPanel`
+  (imported by AccessTier1Page)
+- `apps/product-shell/src/features/marketplace/state/cartStore`
+  (imported by SkinMarketplacePage — the next failing edge per §14.8)
+- `apps/product-shell/src/features/marketplace/pages/MarketplacePage`
+  (imported by SkinMarketplacePage)
+- `apps/product-shell/src/hooks/*`, `src/integrations/*`, `src/config/*`,
+  `src/contracts/*`, `src/utils/*`
+
+These subtrees will continue to fail S5 verification at the next
+module-graph layer until subsequent rebuild passes close them.
+
+### 14.10 Reference Conflict Status
+
+Unchanged from §13.10. The `/job_site/full_parity_fragment_allowlist.md`
+§0 Pass Scope explicitly excludes any `product-shell` app-root surface, so
+this pass is not constrained by that allowlist.
+
+### 14.11 Repo Mirror / Commit / Push Evidence
+
+| field | value |
+|---|---|
+| repo_mirror | yes — write made to working tree at `/home/user/gateway-fullbody-freeze/apps/product-shell/src/components/layout/PageShell.tsx` |
+| commit_required | yes |
+| push_required | yes |
+| branch | claude/rebuild-product-shell-KIQNp |
+| commit_hash | (recorded post-commit; see git log) |
+| pushed_to | origin/claude/rebuild-product-shell-KIQNp |
+
+### 14.12 Checksum Pointers for Foreman B
+
+- Exactly one file was created under `apps/product-shell/src/components/layout/`.
+- Scope lock is enforced — no file outside `apps/product-shell/src/components/layout/` was created, modified, or deleted in this append pass.
+- All 11 page modules' `../components/layout/PageShell` direct-import edges are now resolvable; the `src/pages/* → ../components/layout/PageShell` failing edge is closed.
+- The next failing edge (§14.8) is `src/pages/SkinMarketplacePage.tsx → ../features/marketplace/state/cartStore`, outside this pass's scope.
+- Because no baseline archive is available on the attached file system, the file is a minimal chassis-native stub (§14.7) and NOT a byte-for-byte baseline copy. This divergence from §11/§12 reconstruction method is noted here (same as §13.12) for Foreman B adjudication.
