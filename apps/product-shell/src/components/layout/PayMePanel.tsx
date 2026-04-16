@@ -1,5 +1,5 @@
 import { usePayMeCart } from "../../state/paymeCartState";
-import { ModuleFrame } from "../integrations/ModuleFrame";
+import { Basket } from "../../features/payme/Basket";
 
 export function PayMePanel() {
   const { open, hide } = usePayMeCart();
@@ -9,21 +9,21 @@ export function PayMePanel() {
       className={"paymeSidePanel" + (open ? " paymeSidePanelOpen" : "")}
       aria-hidden={!open}
       role="dialog"
-      aria-label="PayMe"
+      aria-label="PayMe basket"
     >
       <div className="paymeSidePanelHeader">
-        <div className="paymeSidePanelTitle">PayMe</div>
+        <div className="paymeSidePanelTitle">PayMe · Basket</div>
         <button
           type="button"
           className="paymeSidePanelClose"
           onClick={hide}
-          aria-label="Close PayMe panel"
+          aria-label="Close basket"
         >
           ×
         </button>
       </div>
       <div className="paymeSidePanelBody">
-        <ModuleFrame module="payme" height="100%" />
+        <Basket />
       </div>
     </aside>
   );
