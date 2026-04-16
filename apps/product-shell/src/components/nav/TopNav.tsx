@@ -1,9 +1,12 @@
+import { useState } from "react";
 import { NavLink, Link } from "react-router-dom";
 import { routes } from "../../app/routes";
 import { usePayMeCart } from "../../state/paymeCartState";
+import { AuthModal } from "./AuthModal";
 
 export function TopNav() {
   const { toggle: togglePayMe, open: payMeOpen } = usePayMeCart();
+  const [authOpen, setAuthOpen] = useState(false);
 
   return (
     <nav className="topNav">
@@ -54,7 +57,7 @@ export function TopNav() {
         </div>
 
         <div className="topNavRight">
-          <button type="button" className="loginTextBtn">
+          <button type="button" className="loginTextBtn" onClick={() => setAuthOpen(true)}>
             Login
           </button>
           <button
@@ -72,6 +75,7 @@ export function TopNav() {
           </button>
         </div>
       </div>
+      <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
     </nav>
   );
 }
