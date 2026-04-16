@@ -20,5 +20,10 @@
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.1",
     "vite": "^5.4.8"
+  },
+  "main": "./src/index.jsx",
+  "exports": {
+    ".": "./src/index.jsx",
+    "./services/usdcTransfer": "./src/services/usdcTransfer.js"
   }
 }
