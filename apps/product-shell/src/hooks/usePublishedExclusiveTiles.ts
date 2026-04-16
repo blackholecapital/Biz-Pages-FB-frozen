@@ -18,7 +18,7 @@ export function usePublishedExclusiveTiles(slug?: string) {
         return;
       }
 
-      const page = await fetchPublishedRuntimePage(slug, "access-tier-2");
+      const page = await fetchPublishedRuntimePage(slug, "tier-2");
       if (cancelled) return;
 
       if (!page) {
