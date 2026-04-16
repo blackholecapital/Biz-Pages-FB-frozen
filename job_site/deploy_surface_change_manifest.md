@@ -1158,3 +1158,58 @@ Still deferred and intentionally untouched by this pass:
 | branch | work |
 | commit_hash | (recorded post-commit; see git log) |
 | pushed_to | (push attempted post-commit) |
+
+## 18. Append — Gate Components Subtree Reconstruction Pass (S3.3 task dispatch)
+
+job_id: RB-INT-CHASSIS-002
+stage: S3.3
+pass: product-shell gate subtree reconstruction (`src/components/gate/` only; resolve router RequireGate import edge)
+worker: worker_a
+branch: work
+
+### 18.1 Goal and scope lock
+
+Goal: reconstruct full `src/components/gate/` subtree needed to satisfy
+`RequireGate` import edge detected from `src/app/router.tsx` static scan.
+
+Created exactly:
+
+- `apps/product-shell/src/components/gate/RequireGate.tsx`
+- `apps/product-shell/src/components/gate/LoginModal.tsx`
+- `apps/product-shell/src/components/gate/GateStatusPill.tsx`
+- `apps/product-shell/src/components/gate/WalletConnectButton.tsx`
+- `apps/product-shell/src/components/gate/SignMessageButton.tsx`
+- `apps/product-shell/src/components/gate/DemoBypassButton.tsx`
+
+No files outside `apps/product-shell/src/components/gate/` were created for this
+subtree reconstruction pass.
+
+### 18.2 Direct dependency closure inside gate subtree
+
+- `RequireGate.tsx` imports all sibling gate modules listed above.
+- Gate sibling modules import only React types/runtime and local props;
+  no additional gate-local context/hooks/util files were required to close
+  direct subtree imports.
+
+### 18.3 Verification
+
+Static import presence check confirms all `RequireGate.tsx` local sibling imports
+resolve to files present under `apps/product-shell/src/components/gate/`.
+
+### 18.4 Out-of-scope handoff
+
+Still deferred and intentionally untouched by this pass:
+
+- uncommenting/re-enabling gate in `src/app/router.tsx`
+- non-gate component subtrees and non-component surfaces
+
+### 18.5 Repo mirror / commit / push evidence
+
+| field | value |
+|---|---|
+| repo_mirror | yes — writes made under `/workspace/gateway-fullbody-freeze/apps/product-shell/src/components/gate/` and manifest append |
+| commit_required | yes |
+| push_required | yes |
+| branch | work |
+| commit_hash | (recorded post-commit; see git log) |
+| pushed_to | (push attempted post-commit) |

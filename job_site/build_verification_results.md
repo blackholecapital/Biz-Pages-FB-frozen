@@ -506,3 +506,26 @@ Notes:
   for reconstruction was anchored to the last recorded in-repo failing feature
   edge documented in `job_site/deploy_surface_change_manifest.md` §15.3:
   `src/pages/SkinMarketplacePage.tsx -> ../features/marketplace/pages/MarketplacePage`.
+
+---
+
+## 17. Appended static import-edge detection (S3.2 fallback dispatch)
+
+Task dispatch: perform STATIC import scan only across `src/app/`, `src/pages/`,
+and `src/features/` to identify the first unresolved relative import path.
+
+| field | value |
+|---|---|
+| method | static source scan (no npm, no vite) |
+| scanned roots | `apps/product-shell/src/app/`, `apps/product-shell/src/pages/`, `apps/product-shell/src/features/` |
+| file traversal order | lexical (`app/` then `pages/` then `features/`; files sorted) |
+| import traversal order | top-to-bottom line order per file |
+| first unresolved import | `../components/gate/RequireGate` |
+| source file | `apps/product-shell/src/app/router.tsx` |
+| source line | 17 |
+| resolved target path attempted | `apps/product-shell/src/components/gate/RequireGate.{ts,tsx,js,jsx}` and `apps/product-shell/src/components/gate/RequireGate/index.{ts,tsx,js,jsx}` |
+| detection result | missing target file (first unresolved static edge) |
+
+Notes:
+- This fallback run intentionally did not execute any build/install command.
+- Result is suitable for next controlled subtree reconstruction dispatch.
