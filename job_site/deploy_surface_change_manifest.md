@@ -1213,3 +1213,59 @@ Still deferred and intentionally untouched by this pass:
 | branch | work |
 | commit_hash | (recorded post-commit; see git log) |
 | pushed_to | (push attempted post-commit) |
+
+## 19. Append — Utils Subtree Reconstruction Pass (S3.5 task dispatch)
+
+job_id: RB-INT-CHASSIS-002
+stage: S3.5
+pass: product-shell utils subtree reconstruction (`src/utils/` only; resolve AccessTier2Page usdc import edge)
+worker: worker_a
+branch: work
+
+### 19.1 Goal and scope lock
+
+Goal: reconstruct full `src/utils/` subtree required to satisfy
+`src/pages/AccessTier2Page.tsx -> ../utils/usdc` static import edge.
+
+Created in this pass:
+
+- `apps/product-shell/src/utils/usdc.ts`
+- `apps/product-shell/src/utils/assetCodeResolver.ts`
+- `apps/product-shell/src/utils/resolveStaticAsset.ts`
+- `apps/product-shell/src/utils/resolveWallpaper.ts`
+- `apps/product-shell/src/utils/tenantPageClient.ts`
+
+No files outside `apps/product-shell/src/utils/` were created for this pass.
+
+### 19.2 Direct dependency closure inside utils subtree
+
+- `resolveStaticAsset.ts` imports `./assetCodeResolver`.
+- `resolveWallpaper.ts` imports `./resolveStaticAsset`.
+- `usdc.ts` is self-contained and exports `sendUsdcOnBase` used by
+  `AccessTier2Page.tsx`.
+- No additional utils-local helper/formatter/constants modules are directly
+  required beyond the files created above.
+
+### 19.3 Verification
+
+Static import presence check confirms `../utils/usdc` from
+`src/pages/AccessTier2Page.tsx` resolves to
+`apps/product-shell/src/utils/usdc.ts`.
+
+### 19.4 Out-of-scope handoff
+
+Still deferred and intentionally untouched by this pass:
+
+- non-utils missing subtrees (`src/hooks/`, `src/integrations/`, `src/config/`, `src/contracts/`)
+- runtime wallet/provider integrations beyond mock-safe utils interfaces
+
+### 19.5 Repo mirror / commit / push evidence
+
+| field | value |
+|---|---|
+| repo_mirror | yes — writes made under `/workspace/gateway-fullbody-freeze/apps/product-shell/src/utils/` and manifest append |
+| commit_required | yes |
+| push_required | yes |
+| branch | work |
+| commit_hash | (recorded post-commit; see git log) |
+| pushed_to | (push attempted post-commit) |

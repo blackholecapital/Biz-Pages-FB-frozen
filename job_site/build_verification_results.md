@@ -529,3 +529,27 @@ and `src/features/` to identify the first unresolved relative import path.
 Notes:
 - This fallback run intentionally did not execute any build/install command.
 - Result is suitable for next controlled subtree reconstruction dispatch.
+
+---
+
+## 18. Appended static import-edge detection (S3.4 fallback dispatch)
+
+Task dispatch: perform STATIC import scan across `src/app/`, `src/pages/`,
+`src/features/`, and `src/components/` to identify the next unresolved relative
+import path after gate subtree reconstruction.
+
+| field | value |
+|---|---|
+| method | static source scan (no npm, no vite) |
+| scanned roots | `apps/product-shell/src/app/`, `apps/product-shell/src/pages/`, `apps/product-shell/src/features/`, `apps/product-shell/src/components/` |
+| file traversal order | lexical (`app/` → `pages/` → `features/` → `components/`; files sorted) |
+| import traversal order | top-to-bottom line order per file (commented lines ignored) |
+| first unresolved import | `../utils/usdc` |
+| source file | `apps/product-shell/src/pages/AccessTier2Page.tsx` |
+| source line | 6 |
+| resolved target path attempted | `apps/product-shell/src/utils/usdc.{ts,tsx,js,jsx}` and `apps/product-shell/src/utils/usdc/index.{ts,tsx,js,jsx}` |
+| detection result | missing target file (next unresolved static edge) |
+
+Notes:
+- This fallback run intentionally did not execute any build/install command.
+- Result is suitable for the next controlled reconstruction dispatch.
