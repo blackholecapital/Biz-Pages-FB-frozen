@@ -1,5 +1,7 @@
 /* Unified Workspace Tile — same visual language as PayMe modal tile.
-   Centered over wallpaper, sits above wallpaper (z 3) but below nav (z 50). */
+   Centered over wallpaper, sits above wallpaper (z 3) but below nav (z 50).
+   Off-white body with a faint blue-gray tint to drop the brightness; header
+   one notch darker for contrast against the inner cards. */
 .workspaceTile {
   position: relative;
   z-index: 3;
@@ -9,7 +11,7 @@
   max-height: calc(100vh - var(--nav-h) - 36px);
   border-radius: 18px;
   border: 1px solid rgba(59,130,246,.18);
-  background: rgba(255,255,255,.97);
+  background: #E8EDF3;
   box-shadow: 0 12px 40px rgba(0,0,0,.25), 0 0 40px rgba(255,255,255,.06);
   overflow: hidden;
   display: flex;
@@ -22,8 +24,8 @@
   justify-content: space-between;
   gap: 14px;
   padding: 14px 18px;
-  background: #F8FAFC;
-  border-bottom: 1px solid rgba(59,130,246,.10);
+  background: #D8DEE7;
+  border-bottom: 1px solid rgba(71,85,105,.18);
   flex-wrap: wrap;
 }
 
@@ -31,15 +33,40 @@
   margin: 0;
   font-size: 22px;
   font-weight: 900;
-  color: #3B82F6;
+  color: #1E40AF;
   letter-spacing: .2px;
 }
 
 .workspaceTileHeaderExtras {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
+}
+
+.workspaceTab {
+  border-radius: 14px;
+  padding: 8px 14px;
+  font-weight: 800;
+  font-size: 13px;
+  border: 1px solid rgba(59,130,246,.32);
+  background: linear-gradient(180deg, #FFFFFF 0%, #DBE7FB 100%);
+  color: #1D4ED8;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+.workspaceTab:hover {
+  background: linear-gradient(180deg, #FFFFFF 0%, #C5D7F8 100%);
+  border-color: rgba(59,130,246,.55);
+}
+.workspaceTab.active {
+  background: #3B82F6;
+  border-color: #2563EB;
+  color: #fff;
 }
 
 .workspaceTileBody {
@@ -47,10 +74,30 @@
   padding: 18px 20px 22px;
   overflow: auto;
   color: #1E293B;
+  background: #E8EDF3;
 }
 
 /* Keep wallpaper interactive behind tile — tile is opaque, no blocker needed. */
 .workspaceTile, .workspaceTileBody { pointer-events: auto; }
+
+/* Inner cards inside workspace body sit a tone brighter than the body, so they
+   read as the "active" surface on top of the workspace background. */
+.workspaceTileBody .adminBlock {
+  background: #FFFFFF;
+  border: 1px solid rgba(59,130,246,.20);
+  box-shadow: 0 1px 0 rgba(255,255,255,.6) inset, 0 6px 18px rgba(15,23,42,.06);
+}
+.workspaceTileBody .adminBlockTitle {
+  background: #F4F7FC;
+  color: #1D4ED8;
+  border-bottom: 1px solid rgba(59,130,246,.14);
+}
+
+.workspaceTileBody .cardGlow {
+  background: #FFFFFF !important;
+  border: 1px solid rgba(59,130,246,.22) !important;
+  box-shadow: 0 1px 0 rgba(255,255,255,.6) inset, 0 6px 18px rgba(15,23,42,.06) !important;
+}
 
 @media (max-width: 900px) {
   .workspaceTile {
@@ -78,7 +125,7 @@
   z-index: 40;
   border-radius: 18px;
   border: 1px solid rgba(59,130,246,.22);
-  background: rgba(255,255,255,.98);
+  background: #F4F7FC;
   color: #1E293B;
   box-shadow: -12px 12px 36px rgba(0,0,0,.28);
   display: flex;
@@ -99,13 +146,13 @@
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  background: #F8FAFC;
-  border-bottom: 1px solid rgba(59,130,246,.10);
+  background: #D8DEE7;
+  border-bottom: 1px solid rgba(71,85,105,.18);
 }
 
 .paymeSidePanelTitle {
   font-weight: 900;
-  color: #3B82F6;
+  color: #1D4ED8;
   font-size: 16px;
   letter-spacing: .2px;
 }
@@ -148,4 +195,117 @@
     bottom: 8px;
     width: auto;
   }
+}
+
+
+/* Login modal — centered over the workspace, popped by the top-nav Login button. */
+.authModalBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(15, 23, 42, .55);
+  display: grid;
+  place-items: center;
+  padding: 18px;
+}
+
+.authModal {
+  width: min(420px, 100%);
+  border-radius: 18px;
+  border: 1px solid rgba(59,130,246,.20);
+  background: #F4F7FC;
+  color: #1E293B;
+  box-shadow: 0 24px 60px rgba(0,0,0,.35);
+  overflow: hidden;
+}
+
+.authModalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: #D8DEE7;
+  border-bottom: 1px solid rgba(71,85,105,.18);
+  font-weight: 900;
+  color: #1D4ED8;
+}
+
+.authModalTabs {
+  display: flex;
+  gap: 6px;
+  padding: 12px 16px 0;
+}
+
+.authModalTab {
+  flex: 1;
+  padding: 8px 10px;
+  border-radius: 12px 12px 0 0;
+  border: 1px solid rgba(59,130,246,.20);
+  border-bottom: none;
+  background: #E8EDF3;
+  color: #475569;
+  font-weight: 800;
+  cursor: pointer;
+  font-size: 13px;
+}
+.authModalTab.active {
+  background: #fff;
+  color: #1D4ED8;
+}
+
+.authModalBody {
+  padding: 14px 16px 16px;
+  background: #fff;
+  display: grid;
+  gap: 10px;
+}
+
+.authModalLabel {
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748B;
+}
+
+.authModalInput {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(59,130,246,.22);
+  background: #fff;
+  color: #1E293B;
+  outline: none;
+}
+.authModalInput:focus {
+  border-color: #3B82F6;
+  box-shadow: 0 0 0 2px rgba(59,130,246,.10);
+}
+
+.authModalActions {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+.authModalActions .primary {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid #2563EB;
+  background: #3B82F6;
+  color: #fff;
+  font-weight: 800;
+  cursor: pointer;
+}
+.authModalActions .primary:hover { background: #2563EB; }
+
+.authModalClose {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 1px solid rgba(59,130,246,.22);
+  background: #fff;
+  color: #1D4ED8;
+  font-size: 16px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
 }

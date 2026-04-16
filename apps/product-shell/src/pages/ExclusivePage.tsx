@@ -93,10 +93,10 @@ export function ExclusivePage() {
 
           <div className="cardGlow" style={{ border: "1px solid rgba(59,130,246,.18)", borderRadius: 16, padding: 16, background: "rgba(255,255,255,.97)", width: "100%" }}>
             <div style={{ fontWeight: 900, marginBottom: 12, textAlign: "center", color: "#3B82F6" }}>Purchase monthly memberships, recurring billing and subscriptions.</div>
-            <div style={{ display: "grid", gap: 10, gridTemplateColumns: "1fr auto auto" }}>
+            <div style={{ display: "flex", gap: 10, justifyContent: "center", alignItems: "center", flexWrap: "wrap" }}>
               <select
                 className="adminTextInput"
-                style={{ WebkitAppearance: "none", MozAppearance: "none", appearance: "none" } as React.CSSProperties}
+                style={{ WebkitAppearance: "none", MozAppearance: "none", appearance: "none", width: 180, flex: "0 0 auto" } as React.CSSProperties}
                 value={membershipIndex}
                 onChange={(e) => setMembershipIndex(Number(e.target.value))}
               >
