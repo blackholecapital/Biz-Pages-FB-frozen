@@ -1016,3 +1016,65 @@ Still missing and intentionally deferred by this pass:
 | branch | claude/rebuild-product-shell-KIQNp |
 | commit_hash | (recorded post-commit; see git log) |
 | pushed_to | origin/claude/rebuild-product-shell-KIQNp |
+
+## 16. Append — PayMe Feature Subtree Reconstruction Pass (S3 task dispatch)
+
+job_id: RB-INT-CHASSIS-002
+stage: S3
+pass: product-shell payme feature reconstruction (`src/features/payme/` only; resolve AccessTier1Page MemberBillingPanel import)
+worker: worker_a
+branch: work
+
+### 16.1 Goal and scope lock
+
+Goal: resolve `src/pages/AccessTier1Page.tsx` import of
+`../features/payme/MemberBillingPanel` by reconstructing only the required
+`src/features/payme/` subtree.
+
+Created exactly:
+
+- `apps/product-shell/src/features/payme/MemberBillingPanel.tsx`
+- `apps/product-shell/src/features/payme/PayMeAdminPanel.tsx`
+- `apps/product-shell/src/features/payme/PayMeAdminCard.tsx`
+
+No files outside `apps/product-shell/src/features/payme/` were added for
+feature code in this pass.
+
+### 16.2 Dependency closure inside payme subtree
+
+- `MemberBillingPanel.tsx` imports `./PayMeAdminPanel`.
+- `PayMeAdminPanel.tsx` imports `./PayMeAdminCard`.
+- No `state/`, `hooks/`, or nested `components/` paths are directly imported
+  by this reconstructed chain, so no additional payme-scope files were
+  required to close direct sibling dependencies for this task.
+
+### 16.3 Verification
+
+From `apps/product-shell`:
+
+- `npm install --no-audit --no-fund`
+- `npx vite build`
+
+Result: the `AccessTier1Page.tsx -> ../features/payme/MemberBillingPanel`
+edge is resolved. Build now fails later in the graph at
+`src/pages/EngagePage.tsx -> ../components/integrations/ModuleFrame`
+(outside this task scope).
+
+### 16.4 Out-of-scope handoff
+
+Still deferred and intentionally untouched by this pass:
+
+- any non-payme feature subtree (`features/marketplace/pages`,
+  `features/referrals`, `features/engage`)
+- any `src/components/*` surfaces outside payme feature boundary
+
+### 16.5 Repo mirror / commit / push evidence
+
+| field | value |
+|---|---|
+| repo_mirror | yes — writes made under `/workspace/gateway-fullbody-freeze/apps/product-shell/src/features/payme/` and manifest append |
+| commit_required | yes |
+| push_required | yes |
+| branch | work |
+| commit_hash | (recorded post-commit; see git log) |
+| pushed_to | (push attempted post-commit) |
