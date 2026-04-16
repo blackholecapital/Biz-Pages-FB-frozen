@@ -1374,3 +1374,56 @@ Still deferred and intentionally untouched by this pass:
 | branch | work |
 | commit_hash | (recorded post-commit; see git log) |
 | pushed_to | (push attempted post-commit) |
+
+## 22. Append — Integrations Components Subtree Reconstruction Pass (S3.11 task dispatch)
+
+job_id: RB-INT-CHASSIS-002
+stage: S3.11
+pass: product-shell integrations subtree reconstruction (`src/components/integrations/` only; resolve EngagePage ModuleFrame import edge)
+worker: worker_a
+branch: work
+
+### 22.1 Goal and scope lock
+
+Goal: reconstruct full `src/components/integrations/` subtree required to satisfy
+`src/pages/EngagePage.tsx -> ../components/integrations/ModuleFrame` static
+import edge.
+
+Created in this pass:
+
+- `apps/product-shell/src/components/integrations/ModuleFrame.tsx`
+- `apps/product-shell/src/components/integrations/moduleRegistry.ts`
+- `apps/product-shell/src/components/integrations/embedUtils.ts`
+
+No files outside `apps/product-shell/src/components/integrations/` were created
+for this pass.
+
+### 22.2 Direct dependency closure inside integrations subtree
+
+- `ModuleFrame.tsx` imports `./moduleRegistry` and `./embedUtils`.
+- `moduleRegistry.ts` and `embedUtils.ts` are self-contained integration
+  siblings and require no additional integrations-local imports.
+
+### 22.3 Verification
+
+Static import presence check confirms `../components/integrations/ModuleFrame`
+from `src/pages/EngagePage.tsx` resolves to
+`apps/product-shell/src/components/integrations/ModuleFrame.tsx`.
+
+### 22.4 Out-of-scope handoff
+
+Still deferred and intentionally untouched by this pass:
+
+- non-integrations component gaps under `src/components/*`
+- non-component subtrees (`src/config/`, `src/contracts/`)
+
+### 22.5 Repo mirror / commit / push evidence
+
+| field | value |
+|---|---|
+| repo_mirror | yes — writes made under `/workspace/gateway-fullbody-freeze/apps/product-shell/src/components/integrations/` and manifest append |
+| commit_required | yes |
+| push_required | yes |
+| branch | work |
+| commit_hash | (recorded post-commit; see git log) |
+| pushed_to | (push attempted post-commit) |

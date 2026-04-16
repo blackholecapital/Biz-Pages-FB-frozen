@@ -601,3 +601,27 @@ the next unresolved relative import path after hooks subtree reconstruction.
 Notes:
 - This fallback run intentionally did not execute any build/install command.
 - Result is suitable for the next controlled reconstruction dispatch.
+
+---
+
+## 21. Appended static import-edge detection (S3.10 final dispatch)
+
+Task dispatch: perform FINAL STATIC import scan across `src/app/`, `src/pages/`,
+`src/features/`, `src/components/`, `src/utils/`, and `src/hooks/`; stop at
+first unresolved import path (or confirm none).
+
+| field | value |
+|---|---|
+| method | static source scan (no npm, no vite) |
+| scanned roots | `apps/product-shell/src/app/`, `apps/product-shell/src/pages/`, `apps/product-shell/src/features/`, `apps/product-shell/src/components/`, `apps/product-shell/src/utils/`, `apps/product-shell/src/hooks/` |
+| file traversal order | lexical (`app/` → `pages/` → `features/` → `components/` → `utils/` → `hooks/`; files sorted) |
+| import traversal order | top-to-bottom line order per file (commented lines ignored) |
+| first unresolved import | `../components/integrations/ModuleFrame` |
+| source file | `apps/product-shell/src/pages/EngagePage.tsx` |
+| source line | 2 |
+| resolved target path attempted | `apps/product-shell/src/components/integrations/ModuleFrame.{ts,tsx,js,jsx}` and `apps/product-shell/src/components/integrations/ModuleFrame/index.{ts,tsx,js,jsx}` |
+| final scan result | unresolved imports remain (first unresolved edge recorded above) |
+
+Notes:
+- This final scan intentionally did not execute any build/install command.
+- Scan stopped at the first unresolved import as dispatched.
