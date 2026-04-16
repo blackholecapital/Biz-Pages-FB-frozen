@@ -5,9 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npm run build:engage && vite build",
+    "build": "npm run build:engage && npm run build:payme && vite build",
     "preview": "vite preview",
     "build:engage": "npm --prefix ../modules/engage install --progress=false && npm --prefix ../modules/engage run build",
+    "build:payme": "npm --prefix ../modules/payme install --progress=false && npm --prefix ../modules/payme run build",
     "test": "node --test tests/microfrontend/*.test.mjs",
     "test:pass5": "npm run test",
     "typecheck": "tsc --noEmit"
