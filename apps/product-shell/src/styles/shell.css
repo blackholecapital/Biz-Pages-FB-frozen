@@ -1,4 +1,14 @@
-.appRoot { min-height: 100vh; }
+.appRoot { min-height: 100vh; position: relative; }
+
+/* Root-level default wallpaper — fixed so it always covers the viewport.
+   PageShell's position:absolute wallpaper layer renders above this when
+   a tenant R2 wallpaper override is active. */
+.appRootWallpaper {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
 
 .appBody {
   min-height: 100vh;

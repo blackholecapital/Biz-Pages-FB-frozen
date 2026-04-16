@@ -55,6 +55,72 @@ functional beneath it. Removing the deferred text unblocks the Customer Service 
 
 ---
 
+## PATCH 3 — Default global wallpaper at root layout level (PATCH REFINEMENT)
+
+### 3a — `apps/product-shell/src/app/AppShell.tsx`
+
+Added fixed root-level wallpaper layer using `/biz-pages.png` (served from `public/`).
+Uses `position: fixed` via `.appRootWallpaper` so it always covers the viewport behind
+all page content. Default URL is a named constant for easy future change.
+
+```tsx
+const DEFAULT_WALLPAPER_URL = "/biz-pages.png";
+
+// Inside AppShell render:
+<div className="appRootWallpaper" aria-hidden>
+  <div
+    className="wallpaperImage"
+    style={{ backgroundImage: `url('${DEFAULT_WALLPAPER_URL}')` }}
+  />
+</div>
+```
+
+### 3b — `apps/product-shell/src/styles/shell.css`
+
+Added `.appRootWallpaper` rule. Added `position: relative` to `.appRoot` for correct
+stacking context.
+
+```css
+.appRoot { min-height: 100vh; position: relative; }
+
+.appRootWallpaper {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+```
+
+### 3c — `apps/product-shell/src/components/layout/PageShell.tsx`
+
+Added optional `wallpaperUrl` prop. When provided (e.g., from resolved R2 wallpaper
+asset code), applies as inline `backgroundImage` on the page-level `.wallpaperImage` div.
+Inline style overrides any CSS rule, so this cleanly overrides the AppShell default for
+the current page. When `wallpaperUrl` is undefined, PageShell's wallpaper div is
+transparent and AppShell's fixed default shows through.
+
+```tsx
+type PageShellProps = {
+  children?: ReactNode;
+  wallpaperUrl?: string;  // R2 override path
+};
+
+// wallpaperImage div:
+style={wallpaperUrl ? { backgroundImage: `url('${wallpaperUrl}')` } : undefined}
+```
+
+**Override pattern for future R2 integration:**
+```tsx
+// In any page that fetches a PublishedRuntimePage:
+const wallpaperUrl = pageData?.wallpaper
+  ? resolveWallpaper(pageData.wallpaper, slug)
+  : undefined;
+
+<PageShell wallpaperUrl={wallpaperUrl}>
+```
+
+---
+
 ## RESULT
 
 - `/access` page: functional (no change required)
@@ -62,6 +128,8 @@ functional beneath it. Removing the deferred text unblocks the Customer Service 
 - `AccessTier2Page` (Exclusive Content): tier-2 tile fetch now uses correct API page key;
   published exclusive tile data will load when slug is present
 - `AccessTier3Page` (Admin Dash): no change required; correct
+- Global default wallpaper `/biz-pages.png` applied at AppShell (root layout level)
+- PageShell accepts `wallpaperUrl` prop for per-page R2 override without breaking default
 - Provider / state wiring: no change required; correct
 - No incorrect default-deny, blocked, deferred, or mock-only fallback remains in
   access/member-unlock path
