@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { PageShell } from "../components/layout/PageShell";
 import { WorkspaceTile } from "../components/layout/WorkspaceTile";
@@ -9,26 +9,40 @@ type RouteParams = { designation?: string; slug?: string };
 
 type ContentItem = {
   id: string;
+  sku: string;
   price: number;
   label: string;
   locked: boolean;
   imageSrc: string | null;
 };
 
-type MembershipOption = { label: string; buttonLabel: string; memo: string; amount: number };
+type MembershipOption = {
+  id: string;
+  sku: string;
+  label: string;
+  buttonLabel: string;
+  amount: number;
+  interval: "day30" | "day180" | "year";
+  monthlyEquivalent: number;
+};
 
-const DEFAULT_CONTENT_ITEMS: ContentItem[] = Array.from({ length: 6 }, (_, i) => ({
-  id: `Exclusive Content-${i + 1}`,
-  price: 0,
-  label: `Exclusive Content-${i + 1}`,
-  locked: true,
-  imageSrc: null,
-}));
+const DEFAULT_CONTENT_ITEMS: ContentItem[] = Array.from({ length: 6 }, (_, i) => {
+  const n = i + 1;
+  const sku = `EC${n.toString().padStart(6, "0")}`;
+  return {
+    id: `exclusive-content-${n}`,
+    sku,
+    price: 0,
+    label: `Exclusive Content-${n}`,
+    locked: true,
+    imageSrc: null,
+  };
+});
 
 const MEMBERSHIP_OPTIONS: MembershipOption[] = [
-  { label: "30 days", buttonLabel: "30-day subscription", memo: "Membership 30 days", amount: 100 },
-  { label: "180 days", buttonLabel: "180-day subscription", memo: "Membership 180 days", amount: 500 },
-  { label: "1 year", buttonLabel: "1-year subscription", memo: "Membership 1 year", amount: 800 }
+  { id: "membership-30", sku: "PM30D01", label: "30 days", buttonLabel: "30-day subscription", amount: 100, interval: "day30", monthlyEquivalent: 100 },
+  { id: "membership-180", sku: "PM180D1", label: "180 days", buttonLabel: "180-day subscription", amount: 500, interval: "day180", monthlyEquivalent: 83.33 },
+  { id: "membership-365", sku: "PM365D1", label: "1 year", buttonLabel: "1-year subscription", amount: 800, interval: "year", monthlyEquivalent: 66.67 }
 ];
 
 const LOCK_SVG_RED = (
@@ -47,41 +61,57 @@ const LOCK_SVG_GREEN = (
 
 export function ExclusivePage() {
   const { slug } = useParams<RouteParams>();
-  const { show: showPayMe } = usePayMeCart();
+  const { addItem } = usePayMeCart();
   const publishedTiles = usePublishedExclusiveTiles(slug);
 
   const contentItems: ContentItem[] = useMemo(() => {
     if (!publishedTiles.length) return DEFAULT_CONTENT_ITEMS;
-    return publishedTiles.map((tile) => ({
-      id: tile.label,
-      price: tile.price ? parseFloat(tile.price.replace(/[^0-9.]/g, "")) || 0 : 0,
-      label: tile.label,
-      locked: tile.locked,
-      imageSrc: tile.resolvedImageSrc,
-    }));
+    return publishedTiles.map((tile, i) => {
+      const n = i + 1;
+      return {
+        id: `exclusive-content-${n}`,
+        sku: `EC${n.toString().padStart(6, "0")}`,
+        price: tile.price ? parseFloat(tile.price.replace(/[^0-9.]/g, "")) || 0 : 0,
+        label: tile.label,
+        locked: tile.locked,
+        imageSrc: tile.resolvedImageSrc,
+      };
+    });
   }, [publishedTiles]);
 
-  const [_selectedId, setSelectedId] = useState(DEFAULT_CONTENT_ITEMS[0].id);
-  const [_selectedPrice, setSelectedPrice] = useState(0);
   const [membershipIndex, setMembershipIndex] = useState(0);
-  const [membershipActiveMemo] = useState("");
   const [expandedTileId, setExpandedTileId] = useState<string | null>(null);
 
   const membership = MEMBERSHIP_OPTIONS[membershipIndex];
 
-  useEffect(() => {
-    const firstLocked = contentItems.find((item) => item.locked) ?? contentItems[0];
-    if (!firstLocked) return;
-    setSelectedId(firstLocked.id);
-    setSelectedPrice(firstLocked.price);
-  }, [contentItems]);
+  function addContentToBasket(item: ContentItem) {
+    addItem({
+      id: item.id,
+      sku: item.sku,
+      name: item.label,
+      setupPrice: item.price > 0 ? item.price : 29,
+      qty: 1,
+    });
+  }
+
+  function addMembershipToBasket(m: MembershipOption) {
+    addItem({
+      id: m.id,
+      sku: m.sku,
+      name: `${m.buttonLabel}`,
+      description: `Renews every ${m.label}`,
+      monthlyPrice: m.amount,
+      interval: m.interval,
+      qty: 1,
+    });
+  }
 
   return (
     <PageShell>
       <WorkspaceTile title="Exclusive Content">
         <div style={{ display: "grid", gap: 16 }}>
           <div className="cardGlow" style={{ border: "1px solid rgba(59,130,246,.18)", borderRadius: 16, padding: 20, background: "rgba(255,255,255,.97)", width: "100%", textAlign: "center" }}>
-            <div style={{ fontWeight: 900, fontSize: 20, color: "#3B82F6" }}>Gateway provides a built-in monetization layer.</div>
+            <div style={{ fontWeight: 900, fontSize: 20, color: "#3B82F6" }}>Biz Pages provides a built-in monetization layer.</div>
             <div style={{ marginTop: 6, fontSize: 15, color: "#1E293B" }}>Sell goods, services, memberships, content, and more.</div>
             <div style={{ marginTop: 6, fontSize: 13, color: "#64748B" }}>
               PayMe USDC payments. Get paid faster with lower fees.
@@ -101,24 +131,21 @@ export function ExclusivePage() {
                 onChange={(e) => setMembershipIndex(Number(e.target.value))}
               >
                 {MEMBERSHIP_OPTIONS.map((option, index) => (
-                  <option value={index} key={option.memo}>{`${option.label} — $${option.amount}`}</option>
+                  <option value={index} key={option.id}>{`${option.label} — $${option.amount}`}</option>
                 ))}
               </select>
               <button
                 className="usdcPayBtn primary"
                 type="button"
-                onClick={() => {
-                  setSelectedId(membership.memo);
-                  setSelectedPrice(membership.amount);
-                  showPayMe();
-                }}
+                onClick={() => addMembershipToBasket(membership)}
               >
                 Pay
               </button>
               <button
-                className={membershipActiveMemo === membership.memo ? "usdcPayBtn primary" : "usdcPayBtn"}
+                className="usdcPayBtn"
                 type="button"
-                style={membershipActiveMemo !== membership.memo ? { color: "#1E293B" } : undefined}
+                style={{ color: "#1E293B" }}
+                onClick={() => addMembershipToBasket(membership)}
               >
                 {membership.buttonLabel}
               </button>
@@ -163,8 +190,12 @@ export function ExclusivePage() {
               return (
                 <div
                   key={item.id}
-                  style={{ position: "relative", border: "1px solid rgba(255,255,255,.14)", borderRadius: 14, minHeight: 180, background: "rgba(10,16,26,.81)", overflow: "hidden", cursor: isFree ? "pointer" : "default" }}
-                  onClick={isFree ? () => setExpandedTileId(item.id) : undefined}
+                  style={{ position: "relative", border: "1px solid rgba(255,255,255,.14)", borderRadius: 14, minHeight: 180, background: "rgba(10,16,26,.81)", overflow: "hidden", cursor: "pointer" }}
+                  onClick={
+                    isFree
+                      ? () => setExpandedTileId(item.id)
+                      : () => addContentToBasket(item)
+                  }
                 >
                   {item.imageSrc ? (
                     <img
@@ -181,6 +212,9 @@ export function ExclusivePage() {
 
                   <div style={{ position: "absolute", top: 8, left: 10, fontWeight: 700, fontSize: 12, color: "rgba(255,255,255,.85)", zIndex: 2, textShadow: "0 1px 4px rgba(0,0,0,.7)" }}>
                     {item.label}
+                  </div>
+                  <div style={{ position: "absolute", top: 8, right: 10, fontWeight: 700, fontSize: 10, color: "rgba(255,255,255,.65)", zIndex: 2, letterSpacing: ".08em" }}>
+                    SKU {item.sku}
                   </div>
 
                   <div style={{ position: "absolute", bottom: 10, left: 10, zIndex: 2, display: "flex", alignItems: "flex-end", gap: 10 }}>
@@ -206,19 +240,6 @@ export function ExclusivePage() {
                       </div>
                     )}
                   </div>
-
-                  {isLocked && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedId(item.id);
-                        setSelectedPrice(item.price);
-                        showPayMe();
-                      }}
-                      style={{ position: "absolute", inset: 0, background: "transparent", border: "none", borderRadius: 14, cursor: "pointer", zIndex: 3 }}
-                      aria-label={`Select ${item.label} for purchase`}
-                    />
-                  )}
                 </div>
               );
             })}
