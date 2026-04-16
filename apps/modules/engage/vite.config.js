@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [react()],
   build: {
     // Output directly into Gateway static folder
-    outDir: '../../public/apps/engage',
+    outDir: '../../product-shell/public/apps/engage',
     emptyOutDir: true,
   },
 })
