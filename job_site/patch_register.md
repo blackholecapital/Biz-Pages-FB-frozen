@@ -101,27 +101,64 @@ No new CRITICAL, HIGH, or MEDIUM blockers remain in scope. The following advisor
 
 ---
 
-## 3. Summary
+## 3. RB-INT-CHASSIS-004 Stage_4 Parity Patches — PATCHED (Dispatch B)
 
-| Severity | OPEN | RESOLVED | DEFERRED |
+Three parity gaps identified by SHA comparison against `origin/main` during Dispatch B (ENV + ROUTING PARITY FIX). All three are patched at HEAD; uncommitted per `commit_required: no` on Dispatch B dispatch.
+
+### 3.1 PATCH-RB004-005 — `usePublishedExclusiveTiles.ts` page param mismatch (CRITICAL)
+
+- **severity:** CRITICAL
+- **state:** PATCHED
+- **class:** execution (routing / API layer)
+- **current state (pre-patch):** `apps/product-shell/src/hooks/usePublishedExclusiveTiles.ts` called `fetchPublishedRuntimePage(slug, "access-tier-2")`. `VALID_PAGES` in `functions/api/_lib/runtime-schema.js` is `new Set(["home", "members", "access", "tier-2"])`. `"access-tier-2"` is not in `VALID_PAGES`; `assertRuntimeParams` returned `400 { error: "Unsupported page" }` on every call. Exclusive tiles on `AccessTier2Page` always showed 6 default locked placeholders regardless of `TENANTS_BUCKET` configuration. Pre-patch local SHA: `c96c66e5`. Main SHA: `009a1239`.
+- **patch applied:** Changed `"access-tier-2"` → `"tier-2"` at line 21 of `usePublishedExclusiveTiles.ts`. Post-patch SHA matches main `009a1239`. ✓
+- **resolution owner:** RB-INT-CHASSIS-004 stage_4 Worker_B
+- **unblock condition (met):** `fetchPublishedRuntimePage(slug, "tier-2")` — page param is a member of `VALID_PAGES`; API returns `200` with page data; `hydrateExclusiveTilesFromPageData` receives valid payload
+
+### 3.2 PATCH-RB004-006 — `AppShell.tsx` missing wallpaper layer (HIGH)
+
+- **severity:** HIGH
+- **state:** PATCHED
+- **class:** execution (rendering layer)
+- **current state (pre-patch):** `apps/product-shell/src/app/AppShell.tsx` returned `<div className="appRoot">` with `<TopNav />` and `<Outlet />` only. No `appRootWallpaper` wrapper div, no `wallpaperImage` div, no `DEFAULT_WALLPAPER_URL` constant. Deployed app rendered with no background wallpaper. Reference (`origin/main`) includes the full wallpaper layer. Pre-patch local SHA: `66d55a61`. Main SHA: `1035ce15`.
+- **patch applied:** Rewrote `AppShell.tsx` to match main exactly: added `DEFAULT_WALLPAPER_URL = "/biz-pages.png"` constant and `<div className="appRootWallpaper" aria-hidden>` wrapper containing `<div className="wallpaperImage" style={{ backgroundImage: ... }} />`. Post-patch SHA matches main `1035ce15`. ✓
+- **resolution owner:** RB-INT-CHASSIS-004 stage_4 Worker_B
+- **unblock condition (met):** `AppShell.tsx` SHA = `1035ce15`; `appRootWallpaper` layer present; `biz-pages.png` referenced
+
+### 3.3 PATCH-RB004-007 — `public/biz-pages.png` missing static asset (HIGH)
+
+- **severity:** HIGH
+- **state:** PATCHED
+- **class:** execution (asset layer)
+- **current state (pre-patch):** `apps/product-shell/public/biz-pages.png` was absent from the branch. `AppShell.tsx` (post-patch) references `/biz-pages.png` as `DEFAULT_WALLPAPER_URL`. Without this file in `public/`, Vite build would not copy it to `dist/`; deployed app would serve a broken background URL. Main SHA: `fbd264b9` (719,159 bytes).
+- **patch applied:** Fetched binary from `origin/main` via `git show origin/main:apps/product-shell/public/biz-pages.png`. File written to `apps/product-shell/public/biz-pages.png` (719,159 bytes). Post-patch SHA matches main `fbd264b9`. ✓
+- **resolution owner:** RB-INT-CHASSIS-004 stage_4 Worker_B
+- **unblock condition (met):** `public/biz-pages.png` present; SHA `fbd264b9`; Vite copies to `dist/biz-pages.png` at build time
+
+---
+
+## 4. Summary
+
+| Severity | OPEN | RESOLVED / PATCHED | DEFERRED |
 |---|---|---|---|
-| CRITICAL | 0 | 29 | 0 |
-| HIGH | 0 | 2 | 0 |
+| CRITICAL | 0 | 30 | 0 |
+| HIGH | 0 | 4 | 0 |
 | MEDIUM | 0 | 0 | 1 |
 | LOW | 0 | 0 | 2 |
 | ADVISORY | 4 | 0 | 0 |
-| **Total** | **4** | **31** | **3** |
+| **Total** | **4** | **34** | **3** |
 
-**In-scope blocker count: 0.** All 31 prior CRITICAL and HIGH blockers resolved. 3 items remain DEFERRED (out-of-scope modules + scope-clarification doc). 4 advisory items recorded; none block deployment.
+**In-scope blocker count: 0.** All 34 prior CRITICAL and HIGH items resolved or patched. 3 items remain DEFERRED (out-of-scope modules + scope-clarification doc). 4 advisory items recorded; none block deployment.
 
 **Overall register state: CLEAR (advisory only).**
 
 ---
 
-## 4. Checksum Pointers for Foreman B
+## 5. Checksum Pointers for Foreman B
 
 - All 29 RB-INT-CHASSIS-002 CRITICAL entries in §1 are resolved at HEAD on branch `claude/audit-payme-stitch-targets-0YbZ5`. Verification: `npm run build` from `apps/product-shell/` exits 0 and produces `dist/` — see `/job_site/build_verification_results.md`.
 - All 4 advisory entries in §2 are non-blocking for Cloudflare Pages deployment of the gateway + PayMe.
 - PATCH-RB004-003 (`TENANTS_BUCKET`) is the only deployment operator action required before full handler functionality is available. PayMe is not affected.
 - PATCH-RB004-001 (`transferUsdc` stub) is the only remaining PayMe feature gap; UI renders and submits correctly.
 - PATCH-RB004-004 (referrals/vault 404) is self-contained and does not affect any in-scope module path.
+- **Dispatch B additions (§3):** Three parity gaps vs. `origin/main` identified and patched. `usePublishedExclusiveTiles.ts` (CRITICAL — API 400 on tier-2 tiles), `AppShell.tsx` (HIGH — missing wallpaper layer), `public/biz-pages.png` (HIGH — missing static asset). All three post-patch SHAs match main. Patches uncommitted per Dispatch B `commit_required: no`.
