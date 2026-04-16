@@ -8,7 +8,7 @@ export default defineConfig({
   server: { port: 5174 },
   build: {
     // Output directly into Gateway static folder
-    outDir: "../../public/apps/payme",
+    outDir: "../../product-shell/public/apps/payme",
     emptyOutDir: true,
   },
 });
