@@ -127,29 +127,29 @@ This file was created by the S3 worker_b payme minimal-unblock pass (commit c6d0
 
 | # | Target path | Action | Status |
 |---|---|---|---|
-| 7.18 | `apps/modules/referrals/` | create_directory | MISSING |
-| 7.19 | `apps/modules/referrals/package.json` | create | MISSING |
-| 7.20 | `apps/modules/referrals/vite.config.js` | create | MISSING |
-| 7.21 | `apps/modules/referrals/index.html` | create | MISSING |
-| 7.22 | `apps/modules/referrals/src/` | create_directory | MISSING |
-| 7.23 | `apps/modules/referrals/src/` (full subtree — 30 files) | create_subtree | MISSING |
-| 7.24 | `apps/modules/referrals/public/` | create_directory | MISSING |
-| 7.25 | `apps/modules/referrals/public/_redirects` | create | MISSING |
+| 7.18 | `apps/modules/referrals/` | create_directory | DEFERRED |
+| 7.19 | `apps/modules/referrals/package.json` | create | DEFERRED |
+| 7.20 | `apps/modules/referrals/vite.config.js` | create | DEFERRED |
+| 7.21 | `apps/modules/referrals/index.html` | create | DEFERRED |
+| 7.22 | `apps/modules/referrals/src/` | create_directory | DEFERRED |
+| 7.23 | `apps/modules/referrals/src/` (full subtree — 30 files) | create_subtree | DEFERRED |
+| 7.24 | `apps/modules/referrals/public/` | create_directory | DEFERRED |
+| 7.25 | `apps/modules/referrals/public/_redirects` | create | DEFERRED |
 
 ## 11. SECTION 7 — Module Packages (modules/vault)
 
 | # | Target path | Action | Status |
 |---|---|---|---|
-| 7.26 | `apps/modules/vault/` | create_directory | MISSING |
-| 7.27 | `apps/modules/vault/package.json` | create | MISSING |
-| 7.28 | `apps/modules/vault/vite.config.js` | create | MISSING |
-| 7.29 | `apps/modules/vault/index.html` | create | MISSING |
-| 7.30 | `apps/modules/vault/_routes.json` | create | MISSING |
-| 7.31 | `apps/modules/vault/functions/` | create_directory | MISSING |
-| 7.32 | `apps/modules/vault/functions/api/` | create_directory | MISSING |
-| 7.33 | `apps/modules/vault/functions/api/` (full subtree — 14 endpoints) | create_subtree | MISSING |
-| 7.34 | `apps/modules/vault/src/` | create_directory | MISSING |
-| 7.35 | `apps/modules/vault/src/` (full subtree — 60+ files) | create_subtree | MISSING |
+| 7.26 | `apps/modules/vault/` | create_directory | DEFERRED |
+| 7.27 | `apps/modules/vault/package.json` | create | DEFERRED |
+| 7.28 | `apps/modules/vault/vite.config.js` | create | DEFERRED |
+| 7.29 | `apps/modules/vault/index.html` | create | DEFERRED |
+| 7.30 | `apps/modules/vault/_routes.json` | create | DEFERRED |
+| 7.31 | `apps/modules/vault/functions/` | create_directory | DEFERRED |
+| 7.32 | `apps/modules/vault/functions/api/` | create_directory | DEFERRED |
+| 7.33 | `apps/modules/vault/functions/api/` (full subtree — 14 endpoints) | create_subtree | DEFERRED |
+| 7.34 | `apps/modules/vault/src/` | create_directory | DEFERRED |
+| 7.35 | `apps/modules/vault/src/` (full subtree — 60+ files) | create_subtree | DEFERRED |
 
 ## 12. Runtime Support (deploy app — `apps/product-shell/src/runtime/`)
 
@@ -190,6 +190,7 @@ The missing import targets correspond to deploy-app-root subtrees listed `missin
 | 14.6 | tests/ | scope_lock.excluded |
 | 14.7 | production/, resolver-boundary/, variation-control/, _review-required/ | scope_lock.excluded |
 | 14.8 | docs/, blueprint/, README.md | scope_lock.excluded |
+| 14.9 | `apps/modules/referrals/**` + `apps/modules/vault/**` | S3 DEPLOY-CRITICAL re-evaluation rule: explicitly DEFERRED and non-blocking for S5 readiness |
 
 ### 14.a Engage allowlist-deferred fragments
 
@@ -217,17 +218,17 @@ Baseline fragments outside allowlist §8 and NOT evaluated in rows 7.12–7.17:
 | SECTION 6 — Pages Functions (deploy app) | 11 | 11 | 0 | 0 | 0 | 0 |
 | SECTION 7 — modules/engage | 11 | 11 | 0 | 0 | 0 | 0 |
 | SECTION 7 — modules/payme | 6 | 3 | 3 | 0 | 0 | 0 |
-| SECTION 7 — modules/referrals | 8 | 0 | 8 | 0 | 0 | 0 |
-| SECTION 7 — modules/vault | 10 | 0 | 10 | 0 | 0 | 0 |
+| SECTION 7 — modules/referrals | 8 | 0 | 0 | 0 | 0 | 8 |
+| SECTION 7 — modules/vault | 10 | 0 | 0 | 0 | 0 | 10 |
 | Runtime support (deploy app) | 4 | 4 | 0 | 0 | 0 | 0 |
 | Out-of-band stubs (not counted above) | — | — | — | — | 1 | 0 |
-| **Total evaluated** | **62** | **41** | **21** | **0** | **1 (out-of-band)** | **0** |
+| **Total evaluated** | **62** | **41** | **3** | **0** | **1 (out-of-band)** | **18** |
 
-**Headline verdict: 41/62 declared parity surfaces PRESENT. 21/62 MISSING. 0 SHAPE_MISMATCH. 1 out-of-band STUB.**
+**Headline verdict: 41/62 declared parity surfaces PRESENT. 3/62 MISSING. 18/62 DEFERRED (referrals/vault non-blocking in DEPLOY-CRITICAL scope). 0 SHAPE_MISMATCH. 1 out-of-band STUB.**
 
 Deploy app (SECTIONs 1–6 + runtime support) and `modules/engage` are 100% PRESENT at target-path level.
 
-Modules delta: payme transitions from 0/6 PRESENT to 3/6 PRESENT (minimal unblock — 7.12 dir, 7.13 package.json, 7.16 src dir). Payme still has 3 MISSING rows (7.14 vite.config.js, 7.15 index.html, 7.17 full subtree). Referrals and vault remain 0% PRESENT.
+Modules delta: payme transitions from 0/6 PRESENT to 3/6 PRESENT (minimal unblock — 7.12 dir, 7.13 package.json, 7.16 src dir). Payme still has 3 MISSING rows (7.14 vite.config.js, 7.15 index.html, 7.17 full subtree). Referrals and vault are now marked DEFERRED (non-blocking for S5 readiness under DEPLOY-CRITICAL scope).
 
 The out-of-band STUB at `apps/modules/payme/src/index.jsx` is PRESENT on disk but is NOT counted toward any §9 row, since the baseline manifest does not declare a file at that path. It is tracked separately in §9.a.
 
@@ -245,8 +246,8 @@ The out-of-band STUB at `apps/modules/payme/src/index.jsx` is PRESENT on disk bu
 | SECTION 6 — Pages Functions | 11/11 | 11/11 | 0 | unchanged |
 | SECTION 7 — modules/engage | 11/11 | 11/11 | 0 | unchanged |
 | SECTION 7 — modules/payme | 0/6 | 3/6 | +3 | c6d0bd5 (S3 worker_b — payme minimal unblock) |
-| SECTION 7 — modules/referrals | 0/8 | 0/8 | 0 | unchanged |
-| SECTION 7 — modules/vault | 0/10 | 0/10 | 0 | unchanged |
+| SECTION 7 — modules/referrals | 0/8 | 0/8 (DEFERRED) | 0 | status class changed MISSING → DEFERRED for DEPLOY-CRITICAL scope |
+| SECTION 7 — modules/vault | 0/10 | 0/10 (DEFERRED) | 0 | status class changed MISSING → DEFERRED for DEPLOY-CRITICAL scope |
 | Runtime support | 4/4 | 4/4 | 0 | unchanged |
 | **Totals** | **38/62** | **41/62** | **+3** | |
 
@@ -256,7 +257,7 @@ Additionally 1 out-of-band STUB added (`apps/modules/payme/src/index.jsx`) — n
 
 ## 17. Cross-Reference Lock
 
-Every row in §2–§12 corresponds to exactly one declared row in `/job_site/full_parity_target_path_manifest.yaml` SECTIONs 1–7 or to a runtime_support row in `/job_site/missing_surface_matrix.yaml` §deploy_app_root. Every §9–§11 row with status MISSING is listed in `/job_site/patch_register.md` as an unresolved execution blocker. Every §14 deferred row has an explicit deferral source.
+Every row in §2–§12 corresponds to exactly one declared row in `/job_site/full_parity_target_path_manifest.yaml` SECTIONs 1–7 or to a runtime_support row in `/job_site/missing_surface_matrix.yaml` §deploy_app_root. Every §9 row with status MISSING is listed in `/job_site/patch_register.md` as an unresolved execution blocker, while §10–§11 are now DEFERRED/non-blocking in this DEPLOY-CRITICAL pass. Every §14 deferred row has an explicit deferral source.
 
 The payme 3 newly-PRESENT rows (7.12, 7.13, 7.16) cause PATCH-RB002-014 in `/job_site/patch_register.md` to transition from CRITICAL-open to CRITICAL-PARTIAL. The 3 remaining payme MISSING rows (7.14, 7.15, 7.17) remain open under the same patch.
 

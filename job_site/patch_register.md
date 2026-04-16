@@ -45,7 +45,7 @@ The following items are RESOLVED at HEAD c6d0bd5. Retained for audit cross-refer
 
 ---
 
-## 2. CRITICAL — Module Packages Execution Not Performed (remaining modules)
+## 2. Module Packages — DEPLOY-CRITICAL Handling (remaining modules)
 
 ### 2.1 PATCH-RB002-014 — modules/payme subtree missing
 
@@ -68,28 +68,25 @@ The following items are RESOLVED at HEAD c6d0bd5. Retained for audit cross-refer
 
 ### 2.2 PATCH-RB002-015 — modules/referrals subtree missing
 
-- **severity:** CRITICAL
-- **state:** OPEN (unchanged)
+- **severity:** LOW
+- **state:** DEFERRED
 - **class:** execution
 - **declared by:** `/job_site/full_parity_target_path_manifest.yaml` §SECTION 7 (modules/referrals); `/job_site/full_parity_fragment_allowlist.md` §9
-- **current state:** `apps/modules/referrals/` does not exist; 4 flat files + 3 directories + 1 full src subtree (30 files) MISSING
-- **resolution owner:** S3 Worker B (next referrals reconstruction pass)
-- **unblock condition:** every row in `parity_verification_matrix.md` §10 transitions from MISSING to PRESENT
+- **current state:** `apps/modules/referrals/` does not exist; parity rows remain absent.
+- **resolution owner:** Future parity pass (Worker B)
+- **S5 readiness policy (updated):** NON-BLOCKING for DEPLOY-CRITICAL scope. Presence is NOT required for S5 readiness.
 
 ### 2.3 PATCH-RB002-016 — modules/vault subtree missing
 
-- **severity:** CRITICAL
-- **state:** OPEN (unchanged)
+- **severity:** LOW
+- **state:** DEFERRED
 - **class:** execution
 - **declared by:** `/job_site/full_parity_target_path_manifest.yaml` §SECTION 7 (modules/vault); `/job_site/full_parity_fragment_allowlist.md` §10
-- **current state:** `apps/modules/vault/` does not exist; 4 flat files (package.json, vite.config.js, index.html, _routes.json) + 3 directories (module root, src/, functions/, functions/api/) + 2 subtrees (src/ 60+ files, functions/api/ 14 endpoints) MISSING
-- **resolution owner:** S3 Worker B (next vault reconstruction pass)
-- **unblock condition:** every row in `parity_verification_matrix.md` §11 transitions from MISSING to PRESENT
-- **additional constraint:** `apps/modules/vault/functions/api/` handler set MUST match `apps/modules/vault/_routes.json` include/exclude declarations per fragment allowlist §10.5 route coupling rule
+- **current state:** `apps/modules/vault/` does not exist; parity rows remain absent.
+- **resolution owner:** Future parity pass (Worker B)
+- **S5 readiness policy (updated):** NON-BLOCKING for DEPLOY-CRITICAL scope. Presence is NOT required for S5 readiness.
 
-Note: PATCH-RB002-014 (PARTIAL), -015, and -016 do NOT block `build:engage` (which only requires `apps/modules/engage/`) and therefore do not block the `apps/product-shell/package.json` `build` script on the `build:engage` axis. They remain CRITICAL for parity (SECTION 7 full completion).
-
----
+Note: PATCH-RB002-014 (PARTIAL) does NOT block `build:engage` (which only requires `apps/modules/engage`) and therefore does not block the `apps/product-shell/package.json` `build` script on the `build:engage` axis. PATCH-RB002-015 and PATCH-RB002-016 are now DEFERRED and non-blocking for S5 readiness in DEPLOY-CRITICAL scope.
 
 ## 3. HIGH — Document Consistency Divergence
 
@@ -231,15 +228,15 @@ These items were opened by the prior re-evaluation (commit ad431a3) to track the
 
 | Class | CRITICAL OPEN | CRITICAL PARTIAL | HIGH | MEDIUM | LOW |
 |---|---|---|---|---|---|
-| execution — remaining modules (referrals, vault) | 2 | 0 | 0 | 0 | 0 |
+| execution — remaining modules (referrals, vault) | 0 | 0 | 0 | 0 | 0 |
 | execution — payme (minimal unblock applied) | 0 | 1 | 0 | 0 | 0 |
 | execution — deploy-app subtree import graph | 7 | 0 | 0 | 0 | 0 |
 | execution — install / build / verification downstream | 3 | 0 | 0 | 0 | 0 |
 | document-consistency | 0 | 0 | 2 | 0 | 0 |
 | scope-clarification | 0 | 0 | 0 | 1 | 0 |
-| **Total open** | **12** | **1** | **2** | **1** | **0** |
+| **Total open** | **10** | **1** | **2** | **1** | **0** |
 
-**Total open register entries: 16** (13 CRITICAL — of which 1 PARTIAL, 12 OPEN; 2 HIGH; 1 MEDIUM).
+**Total open register entries: 14** (11 CRITICAL — of which 1 PARTIAL, 10 OPEN; 2 HIGH; 1 MEDIUM).
 
 **Resolved (moved out of open list): 13 entries (PATCH-RB002-001 through PATCH-RB002-013).**
 
@@ -262,9 +259,9 @@ on_patch:
 Recommended dispatch order from Foreman A, given current state:
 
 1. **First (unblock vite build):** dispatch S3b Worker A OR extend S4 Worker A to execute PATCH-RB002-023 through PATCH-RB002-029. Until this clears, `vite build` cannot go green and PATCH-RB002-021 remains FAIL.
-2. **Second (complete SECTION 7 parity):** dispatch S3 Worker B to execute PATCH-RB002-014 FULL (replace stub + write remainder of allowlist §8), PATCH-RB002-015 (referrals), PATCH-RB002-016 (vault). Can run in parallel with step 1.
+2. **Second (optional parity completion, non-blocking):** dispatch S3 Worker B to execute PATCH-RB002-014 FULL (replace stub + write remainder of allowlist §8). PATCH-RB002-015 (referrals) and PATCH-RB002-016 (vault) are DEFERRED and do not gate S5 readiness.
 3. **Third (document consistency):** dispatch Foreman A / Factory Control Interface to clear PATCH-RB002-017 and PATCH-RB002-018. Can run in parallel.
-4. **Fourth (verification):** once PATCH-RB002-023..029 and PATCH-RB002-014..016 clear, dispatch S5 Worker A to re-run install and build verification (PATCH-RB002-020, -021, -022).
+4. **Fourth (verification):** once PATCH-RB002-023..029 clear (and PATCH-RB002-014 as needed for parity), dispatch S5 Worker A to re-run install and build verification (PATCH-RB002-020, -021, -022). PATCH-RB002-015/016 are not prerequisites in DEPLOY-CRITICAL scope.
 5. **Fifth:** re-dispatch S5 Worker B to re-verify matrices and close this register.
 6. **In parallel (non-gating):** PATCH-RB002-019 runtime dependency inventory scope clarification.
 
@@ -272,7 +269,7 @@ Recommended dispatch order from Foreman A, given current state:
 
 ## 8. Checksum Pointers for Foreman B
 
-- Every CRITICAL entry in §2 maps 1:1 to at least one MISSING row in `/job_site/parity_verification_matrix.md` §9–§11.
+- In §2, PATCH-RB002-014 remains a parity execution item; PATCH-RB002-015/016 are DEFERRED and non-blocking for DEPLOY-CRITICAL S5 readiness.
 - Every CRITICAL entry in §5 maps 1:1 to at least one `missing` row in `/job_site/missing_surface_matrix.yaml` §deploy_app_root whose target path is imported by a file already PRESENT under `apps/product-shell/src/`.
 - Every CRITICAL entry in §4 is a downstream blocker whose unblock condition depends on upstream CRITICAL entries by ID.
 - Every HIGH entry in §3 names the exact divergent documents and the exact resolution.
