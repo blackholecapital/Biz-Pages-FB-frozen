@@ -954,3 +954,65 @@ this pass is not constrained by that allowlist.
 - All 11 page modules' `../components/layout/PageShell` direct-import edges are now resolvable; the `src/pages/* → ../components/layout/PageShell` failing edge is closed.
 - The next failing edge (§14.8) is `src/pages/SkinMarketplacePage.tsx → ../features/marketplace/state/cartStore`, outside this pass's scope.
 - Because no baseline archive is available on the attached file system, the file is a minimal chassis-native stub (§14.7) and NOT a byte-for-byte baseline copy. This divergence from §11/§12 reconstruction method is noted here (same as §13.12) for Foreman B adjudication.
+
+## 15. Append — Marketplace State Reconstruction Pass (S3 task dispatch)
+
+job_id: RB-INT-CHASSIS-002
+stage: S3
+pass: product-shell marketplace state reconstruction (`src/features/marketplace/state/` only; resolve SkinMarketplacePage cartStore import)
+worker: worker_a
+branch: claude/rebuild-product-shell-KIQNp
+
+### 15.1 Goal and scope lock
+
+Goal: resolve `src/pages/SkinMarketplacePage.tsx` import of
+`../features/marketplace/state/cartStore` by reconstructing only the
+required `src/features/marketplace/state/` subtree.
+
+Created exactly:
+
+- `apps/product-shell/src/features/marketplace/state/cartStore.tsx`
+- `apps/product-shell/src/features/marketplace/state/mockCatalog.ts`
+
+No other `src/features/marketplace/*` paths were created or modified.
+
+### 15.2 Implementation summary
+
+- Added `mockCatalog.ts` with a typed `CatalogProduct` model and a minimal
+  catalog fixture used by cart state.
+- Added `cartStore.tsx` with:
+  - `CartProvider` context wrapper consumed by `SkinMarketplacePage.tsx`
+  - cart state (`lines`, `itemCount`) and actions (`addToCart`,
+    `removeFromCart`, `clearCart`)
+  - `useCartStore()` helper hook for downstream marketplace components.
+- `cartStore.tsx` directly imports only `./mockCatalog`, satisfying the
+  dispatch requirement to include direct sibling dependencies.
+
+### 15.3 Verification
+
+From `apps/product-shell`:
+
+- `npx vite build`
+  - previous edge (`../features/marketplace/state/cartStore`) is resolved.
+  - first unresolved edge advances to
+    `../features/marketplace/pages/MarketplacePage` from
+    `src/pages/SkinMarketplacePage.tsx`, which is outside this task scope.
+
+### 15.4 Out-of-scope handoff
+
+Still missing and intentionally deferred by this pass:
+
+- `apps/product-shell/src/features/marketplace/pages/MarketplacePage.tsx`
+- `apps/product-shell/src/features/marketplace/components/*`
+- any non-marketplace-feature subtree (`hooks/`, `utils/`, other features)
+
+### 15.5 Repo mirror / commit / push evidence
+
+| field | value |
+|---|---|
+| repo_mirror | yes — writes made under `/home/user/gateway-fullbody-freeze/apps/product-shell/src/features/marketplace/state/` and manifest append |
+| commit_required | yes |
+| push_required | yes |
+| branch | claude/rebuild-product-shell-KIQNp |
+| commit_hash | (recorded post-commit; see git log) |
+| pushed_to | origin/claude/rebuild-product-shell-KIQNp |
