@@ -1,8 +1,8 @@
 # BEHAVIOR VERIFICATION MATRIX
 ## job_id: RB-INT-CHASSIS-004 | stage_4 | worker_a
-## Method: live runtime validation on branch `claude/restore-access-session-a1Ely`
+## Method: code audit + runtime-facing wiring review on branch `claude/rebuild-nav-workspace-8IcTa`
 ## Validation date: 2026-04-16
-## Prior version: static code audit on branch `claude/audit-access-flow-guards-U0wip`
+## Prior version: runtime validation on branch `claude/restore-access-session-a1Ely`
 
 ---
 
@@ -10,7 +10,7 @@
 
 | Symbol | Meaning |
 |--------|---------|
-| PASS | Behavior verified through live build and/or direct runtime execution |
+| PASS | Behavior verified through wiring review and/or direct code inspection |
 | PARTIAL | Code path is wired; runtime outcome depends on external asset or operator config |
 | NOTE | Functional within scope; known limitation noted |
 | FAIL | Broken behavior requiring a patch |
@@ -18,170 +18,138 @@
 
 ---
 
-## DIAGNOSIS — WHY /access, MEMBER UNLOCK, AND PAYME WERE NON-FUNCTIONAL
+## SCOPE — NAV + WORKSPACE SYSTEM REBUILD
 
-### Root Cause
+This pass rebuilds the top navigation bar and introduces a unified **WorkspaceTile**
+component that wraps every page-level surface over the wallpaper. PayMe is repositioned
+as a right-side slide-in panel attached to the nav cart icon.
 
-`apps/product-shell/package.json` `build` script was missing `build:payme`:
+### Summary of change
 
-```json
-// BROKEN (stage_3 state)
-"build": "npm run build:engage && npm run build:shell"
-
-// FIXED (this pass)
-"build": "npm run build:engage && npm run build:payme && npm run build:shell"
-```
-
-**Effect:** `npm run build` never executed `build:payme`. The payme module vite.config.js
-outputs to `apps/product-shell/public/apps/payme/`. Without the build step, that directory
-is never populated. The shell vite build copies `public/` to `dist/`, so `dist/apps/payme/`
-was absent from every live deployment. The `/apps/payme/*` redirect rule in `_redirects`
-matched but returned 404. The `/payme` page iframe (`<ModuleFrame module="payme" height="76vh"
-/>`) rendered a broken 404 frame.
-
-The `/access` and member-unlock flows were functionally correct in their TypeScript code paths
-but the PayMe-linked actions (tier-2 USDC cart, tier-3 Pay Me tab) depended on the payme module
-being present. The session/provider state (`DemoGateProvider`, `useDemoGate`, `usePayMeSession`)
-were correct and unblocked.
-
-**Patch applied:** `build` script in `apps/product-shell/package.json` updated.
+| Area | Before | After |
+|------|--------|-------|
+| Top nav tabs | Home, Members, **Access, PayMe, Engage, Referrals, Skins**, Admin | Home, Members, **Exclusive, Customer**, Admin |
+| Brand subtitle | "In Under A Minute" under "Biz Pages" | Removed |
+| Brand title size | 21px | 27px (≈ +30%) |
+| Nav button / Login font | 13px | 16px (≈ +20%) |
+| Brand mark | Single diamond with blue gradient | Dual-page icon (blue + green, matching wallpaper palette) |
+| Access landing page | Banner + Customer / Exclusive / Admin tier buttons | Removed — nav tabs drive directly |
+| Page layout | Mixed per-page layouts (`paymeShell`, inline grids, raw `PageShell`) | Unified `WorkspaceTile` wrapping all workspace routes |
+| PayMe integration | Standalone `/payme` page with iframe | `/payme` route retained; primary entry is cart-driven **PayMeSidePanel** sliding in from right |
+| Cart icon behavior | Decorative button in top bar | Toggles PayMe side panel via `usePayMeCart` context |
+| Floating `cartToggleBtn` per page | Per-page duplicate | Removed — single global cart in nav |
 
 ---
 
-## RUNTIME VALIDATION COMMANDS EXECUTED
+## 1. ROUTE RENDER — post-rebuild
 
-| Command | Working dir | Exit code | Result |
-|---------|-------------|-----------|--------|
-| `npm install` | `apps/product-shell/` | 0 | PASS |
-| `npm run typecheck` | `apps/product-shell/` | 0 | PASS — zero TS errors |
-| `npm run build` | `apps/product-shell/` | 0 | PASS — all 3 steps complete |
+| Route | Component | Renders inside `WorkspaceTile` | Result |
+|-------|-----------|-------------------------------|--------|
+| `/` | `HomePage` | No (hero landing, wallpaper-only) | **PASS** |
+| `/members` | `MembersPage` | No (placeholder page) | **PASS** |
+| `/exclusive` | `ExclusivePage` | YES — title "Exclusive Content" | **PASS** |
+| `/customer` | `CustomerPage` | YES — title "Customer Service" (hosts `MemberBillingPanel`) | **PASS** |
+| `/admin` | `AdminPage` | YES — title "Admin Dash" (hosts `AdminPanel`) | **PASS** |
+| `/payme` | `PayMePage` | YES — title "PayMe" (hosts `ModuleFrame`) | **PASS** (direct route retained) |
+| `/engage` | `EngagePage` | YES — title "Engage" | **PASS** |
+| `/referrals` | `ReferralsPage` | YES — title "Referrals" | **PASS** |
+| `/skins` | `SkinMarketplacePage` | YES — title "Skins" | **PASS** |
+| `/access` | `Navigate → /exclusive` | — | **PASS** (legacy alias) |
+| `/access/tier-1` | `Navigate → /customer` | — | **PASS** (legacy alias) |
+| `/access/tier-2` | `Navigate → /exclusive` | — | **PASS** (legacy alias) |
+| `/access/tier-3` | `Navigate → /admin` | — | **PASS** (legacy alias) |
 
-### Build step breakdown (post-fix):
-
-| Step | Script | Exit | Key output |
-|------|--------|------|-----------|
-| 1 | `build:engage` | 0 | `dist/apps/engage/index.html` (0.53 kB), `assets/index-DsJrFzCJ.js` (559 kB) |
-| 2 | `build:payme` | 0 | `dist/apps/payme/index.html` (0.41 kB), `assets/index-ru_UmGg2.js` (145 kB) |
-| 3 | `build:shell` | 0 | `dist/index.html` (0.56 kB), `assets/index-DqXc_Acv.js` (239 kB) |
-
-### dist/ output confirmed present:
-
-| File | Present |
-|------|---------|
-| `dist/index.html` | YES |
-| `dist/_redirects` | YES |
-| `dist/biz-pages.png` | YES |
-| `dist/apps/engage/index.html` | YES |
-| `dist/apps/engage/assets/index-*.js` | YES |
-| `dist/apps/payme/index.html` | YES |
-| `dist/apps/payme/assets/index-*.js` | YES |
+All tenant-scoped variants (`:slug/gate/...`, `:designation/:slug/...`) updated to
+match the new route keys (`exclusive`, `customer`) alongside the retained
+`payme`, `engage`, `referrals`, `skins`, and `admin` paths.
 
 ---
 
-## 1. ROUTE RENDER — /access and tier pages
-
-| Route | Component | Renders | Gate / Lock | Result |
-|-------|-----------|---------|-------------|--------|
-| `/access` | `AccessPage.tsx` | PageShell + 3 tier nav buttons | None | **PASS** |
-| `/access/tier-1` | `AccessTier1Page.tsx` | "Customer Service" heading + MemberBillingPanel | None | **PASS** |
-| `/access/tier-2` | `AccessTier2Page.tsx` | Exclusive content grid + USDC cart panel | `tier2Unlocked` guard (initial: `true`) | **PASS** |
-| `/access/tier-3` | `AccessTier3Page.tsx` | "Admin Dash" + AdminPanel | `tier3Unlocked` guard (initial: `true`) | **PASS** |
-| `/members` | `MembersPage.tsx` | "Members Page" heading | None | **PASS** |
-| `/payme` | `PayMePage.tsx` | iframe → `/apps/payme/` | None | **PASS** — payme module built and present in `dist/apps/payme/` (FIXED) |
-
-All routes registered in `router.tsx` for all three path variants. Gate (`RequireGate`) remains
-OFF per build sheet requirement. `npm run typecheck` exits 0 — no broken imports or type errors.
-
----
-
-## 2. UNLOCK BEHAVIOR — tier guards
-
-| Tier | Guard check | Initial state | Redirect on lock | Unlock mechanism | Result |
-|------|------------|---------------|-----------------|-----------------|--------|
-| Tier 1 | None | N/A | N/A | N/A — page always opens | **PASS** |
-| Tier 2 | `state.tier2Unlocked` via `useDemoGate()` | `true` | → `${base}/access` | `actions.toggleTier2()` / `unlockTier2()` | **PASS** |
-| Tier 3 | `state.tier3Unlocked` via `useDemoGate()` | `true` | → `${base}/access` | `actions.toggleTier3()` / `unlockTier3()` | **PASS** |
-
-Tier guards verified correct. All tiers start unlocked. No incorrect default-deny. No redirect
-fires on initial render. Build sheet outcome satisfied.
-
----
-
-## 3. PROVIDER / SESSION BEHAVIOR
+## 2. NAV BAR BEHAVIOR
 
 | Check | File | Outcome | Result |
 |-------|------|---------|--------|
-| `DemoGateProvider` wraps `RouterProvider` | `main.tsx` L17–22 | Correct — provider is outermost wrapper | **PASS** |
-| `DemoGateContext` accessible in all routes | `main.tsx` + `AppShell.tsx` | `AppShell` renders `<Outlet />` inside provider scope | **PASS** |
-| `useDemoGate()` used in tier-2 | `AccessTier2Page.tsx` L53 | Reads `state.walletConnected`, `state.signedMessage`, `state.tier2Unlocked`, `actions.*` | **PASS** |
-| `useDemoGate()` used in tier-3 | `AccessTier3Page.tsx` L17 | Reads `state.tier3Unlocked` | **PASS** |
-| `RequireGate` disabled in router | `router.tsx` L17 | Import commented out; no routes wrapped | **PASS** |
-| Initial tier state: all unlocked | `demoGateState.tsx` L34–36 | `tier1/2/3Unlocked: true` | **PASS** |
-| Wallet state: disconnected by default | `demoGateState.tsx` L30–31 | `walletConnected: false`, `signedMessage: false` | **PASS** |
-| `usePayMeSession()` returns `paymeAdminReady: true` | `usePayMeSession.ts` L21–29 | `isAdminBridgeActivatable` evaluates: `stamp_state === "issued"` ✓, `payme_admin_registered: true` ✓, `referral_admin_registered: true` ✓ → returns `true` | **PASS** |
-| `usePayMeSession()` returns `sessionTransportReady: true` | `usePayMeSession.ts` L31–38 | `isTransportReady` evaluates: `bridge_ready: true` ✓, `activation_eligible: true` ✓, `admin_panels_registered: true` ✓ → returns `true` | **PASS** |
-| `PayMeAdminPanel` renders cards (not fallback) | `PayMeAdminPanel.tsx` L7–13 | Both flags `true` → guard does not trigger; `PayMeAdminCard` × 3 render | **PASS** |
-| TypeScript compilation | `tsc --noEmit` | Exit 0, zero errors, all package imports resolve | **PASS** |
+| Nav tab order | `src/app/routes.ts` | `home, members, exclusive, customer, admin` | **PASS** |
+| Brand title size bump | `src/styles/nav.css` `.brandTitle` | `font-size: 27px` (21 → 27, +~30%) | **PASS** |
+| Brand subtitle removed | `src/components/nav/TopNav.tsx` | No `brandSub` element; `.brandSub` rule no longer referenced | **PASS** |
+| Login button size bump | `src/styles/nav.css` `.loginTextBtn` | `font-size: 16px` (13 → 16, +~20%) | **PASS** |
+| Nav link size bump | `src/styles/nav.css` `.navLink` | `font-size: 16px` (13 → 16, +~20%) | **PASS** |
+| Dual-page brand icon | `src/components/nav/TopNav.tsx` | SVG with `bm-page-blue` + `bm-page-green` gradients, two overlapping rectangles + text lines | **PASS** |
+| Cart icon wired to PayMe toggle | `src/components/nav/TopNav.tsx` | `onClick={togglePayMe}`, `aria-pressed`, active state class | **PASS** |
+| Nav z-index above workspace tile | `src/styles/nav.css` `.topNav` | `z-index: 50`; workspace tile `z-index: 3`; PayMe panel `z-index: 40` | **PASS** |
 
 ---
 
-## 4. DEFERRED / BLOCKED / MOCK STATE REMOVAL
-
-| Item | File | Before patch | After patch | Result |
-|------|------|-------------|-------------|--------|
-| MemberBillingPanel deferred text | `MemberBillingPanel.tsx` | "being reconstructed" paragraph blocked billing display | Paragraph removed; `PayMeAdminPanel` renders directly | **PASS** |
-| Exclusive tile page key | `usePublishedExclusiveTiles.ts` L21 | `"access-tier-2"` → 400 from API; tiles always fell back to 6 locked defaults | `"tier-2"` → valid API key; tile data fetched from R2 when slug present | **PASS** |
-| Tier-2 tile fallback (no slug) | `AccessTier2Page.tsx` L56–57 | N/A | Falls back to `DEFAULT_CONTENT_ITEMS` when slug absent — expected | **NOTE** |
-| `sendUsdcOnBase` | `usdc.ts` | Mock — returns simulated tx hash, no real chain call | Unchanged — mock remains in scope; validates inputs and returns hash for demo flow | **NOTE** — real USDC rail out of scope |
-| PayMe module in build chain | `package.json` `build` script | `build:payme` absent → `dist/apps/payme/` empty → iframe 404 | `build:payme` added; `dist/apps/payme/index.html` confirmed present | **FIXED** |
-
----
-
-## 5. PAYME PAGE AND PAYME-LINKED ACTIONS
+## 3. WORKSPACE TILE SYSTEM
 
 | Check | File | Outcome | Result |
 |-------|------|---------|--------|
-| `/payme` route registered | `router.tsx` L77 | Route exists; element is `<PayMePage />` | **PASS** |
-| `PayMePage` renders iframe | `PayMePage.tsx` | `<ModuleFrame module="payme" height="76vh" />` | **PASS** |
-| `resolveModuleUrl("payme")` | `moduleRegistry.ts` | Returns `/apps/payme/` | **PASS** |
-| Payme module source exists | `apps/modules/payme/src/` | `App.jsx`, `index.jsx`, `main.jsx`, `services/usdcTransfer.js` present | **PASS** |
-| Payme module vite.config.js `base` + `outDir` | `apps/modules/payme/vite.config.js` | `base: "/apps/payme/"`, `outDir: "../../product-shell/public/apps/payme"` — resolves to `apps/product-shell/public/apps/payme/` | **PASS** |
-| Payme in product-shell build chain | `package.json` | `build:payme` added to main `build` script | **FIXED** |
-| Engage module output path | `apps/modules/engage/vite.config.js` | `outDir: '../../product-shell/public/apps/engage'` → `apps/product-shell/public/apps/engage/` | **PASS** |
-| `dist/apps/payme/index.html` present | `dist/` after `npm run build` | Confirmed present (0.41 kB) | **PASS** |
-| `dist/apps/payme/assets/index-*.js` present | `dist/` after `npm run build` | Confirmed present (145 kB gzip 47 kB) | **PASS** |
-
-**PayMe-linked actions (tier-2):**
-- USDC pay card renders in `AccessTier2Page` via floating cart toggle ✓
-- Wallet connect: calls `actions.connectWallet()` from `DemoGateContext` ✓
-- Simulate purchase: `onSimulatePurchase()` unlocks tiles locally via `setUnlocked` state ✓
-- Real USDC send: calls `sendUsdcOnBase` — mock implementation returns simulated hash ✓ (demo scope)
+| Unified component exists | `src/components/layout/WorkspaceTile.tsx` | Renders `.workspaceTile > .workspaceTileHeader + .workspaceTileBody.paymeShell` | **PASS** |
+| Visual language matches PayMe tile | `src/styles/workspace.css` | White/translucent body, blue header, blue/white `paymeShell` overrides apply inside | **PASS** |
+| Width matches top tile | `src/styles/workspace.css` `.workspaceTile` | `width: min(1300px, calc(100vw - 36px))` — matches `topNavInner.max-width: 1300px` | **PASS** |
+| Height extends ~70% toward viewport bottom | `src/styles/workspace.css` `.workspaceTile` | `min-height: calc(100vh - var(--nav-h) - 48px)`, `max-height: calc(100vh - var(--nav-h) - 36px)` | **PASS** |
+| Centered over wallpaper | `src/styles/workspace.css` `.workspaceTile` | `margin: 0 auto` + `position: relative; z-index: 3` over wallpaper layer | **PASS** |
+| Applied on Exclusive | `src/pages/ExclusivePage.tsx` | Wraps content in `<WorkspaceTile title="Exclusive Content">` | **PASS** |
+| Applied on Customer | `src/pages/CustomerPage.tsx` | Wraps `MemberBillingPanel` | **PASS** |
+| Applied on Admin | `src/pages/AdminPage.tsx` | Wraps `AdminPanel`; legacy banner + tier-nav buttons removed | **PASS** |
+| Applied on Engage | `src/pages/EngagePage.tsx` | Wraps `ModuleFrame` | **PASS** |
+| Applied on Referrals | `src/pages/ReferralsPage.tsx` | Wraps `ModuleFrame` | **PASS** |
+| Applied on Skins | `src/pages/SkinMarketplacePage.tsx` | Wraps `CartProvider + MarketplacePage` | **PASS** |
+| Applied on PayMe direct route | `src/pages/PayMePage.tsx` | Wraps `ModuleFrame` | **PASS** |
+| Page-level `paymeShell`/legacy shells removed | `src/pages/*.tsx` | No per-page `paymeShell` / `pageTitleRow` / manual tab-button blocks remain | **PASS** |
 
 ---
 
-## 6. GLOBAL WALLPAPER
+## 4. PAYME CART INTEGRATION
 
 | Check | File | Outcome | Result |
 |-------|------|---------|--------|
-| Default wallpaper wired at root | `AppShell.tsx` | `.appRootWallpaper` layer with `url('/biz-pages.png')` inline style | **PASS** |
-| CSS rule for fixed positioning | `shell.css` | `.appRootWallpaper { position: fixed; inset: 0; z-index: -1 }` | **PASS** |
-| R2 override path | `PageShell.tsx` | `wallpaperUrl` prop → inline `backgroundImage` when provided | **PASS** |
-| `biz-pages.png` asset exists | `apps/product-shell/public/` | Present in `public/`, copied to `dist/biz-pages.png` | **PASS** |
+| Cart context provider | `src/state/paymeCartState.tsx` | `PayMeCartProvider` exposes `{open, toggle, show, hide}` | **PASS** |
+| Provider mounted at root | `src/app/AppShell.tsx` | Wraps `TopNav` + `<Outlet />` + `PayMePanel` | **PASS** |
+| Right-side slide-in panel | `src/components/layout/PayMePanel.tsx` | `<aside className="paymeSidePanel">` with open-state class driving CSS transform | **PASS** |
+| Panel slides from right | `src/styles/workspace.css` `.paymeSidePanel` | `transform: translateX(calc(100% + 24px))` → `translateX(0)` on open, 260 ms transition | **PASS** |
+| Reusable (not duplicated) | — | Single component; all invocations call `usePayMeCart().show()` / `toggle()` | **PASS** |
+| Cart icon toggles panel | `src/components/nav/TopNav.tsx` | `onClick={togglePayMe}` on the cart button | **PASS** |
+| Customer "Pay Invoice" opens panel | `src/features/payme/MemberBillingPanel.tsx` | `onPay` marks invoice paid **and** calls `showPayMe()` | **PASS** |
+| Exclusive tile purchase opens panel | `src/pages/ExclusivePage.tsx` | Locked-tile and membership `Pay` buttons call `showPayMe()` | **PASS** |
+| Panel body hosts PayMe module | `src/components/layout/PayMePanel.tsx` | `<ModuleFrame module="payme" height="100%" />` | **PASS** |
+| Panel z-index hierarchy | `src/styles/workspace.css` | `.paymeSidePanel { z-index: 40 }` — above workspace (3), below nav (50) | **PASS** |
 
 ---
 
-## 7. BUILD CHAIN VERIFICATION (LIVE)
+## 5. LEGACY LAYOUT REMOVAL
 
-| Check | File | Outcome | Result |
-|-------|------|---------|--------|
-| No bare global `vite build` | `package.json` | All three vite calls run via npm prefix or `build:shell` | **PASS** |
-| `build:engage` in chain | `package.json` | `npm --prefix ../modules/engage install && npm --prefix ../modules/engage run build` | **PASS** |
-| `build:payme` in chain | `package.json` | `npm --prefix ../modules/payme install && npm --prefix ../modules/payme run build` | **FIXED** — was absent; now present |
-| `build:shell` sub-script | `package.json` | `"build:shell": "vite build"` — runs via npm | **PASS** |
-| Engage output lands in product-shell public | `apps/modules/engage/vite.config.js` | `outDir: '../../product-shell/public/apps/engage'` | **PASS** |
-| Payme output lands in product-shell public | `apps/modules/payme/vite.config.js` | `outDir: '../../product-shell/public/apps/payme'` | **PASS** |
-| `npm run build` exit code | `apps/product-shell/` | Exit 0 | **PASS** |
-| `npm run typecheck` exit code | `apps/product-shell/` | Exit 0 — zero errors | **PASS** |
+| Item | File | State |
+|------|------|-------|
+| Access landing page | `src/pages/AccessPage.tsx` | **DELETED** |
+| Access Tier 1 page | `src/pages/AccessTier1Page.tsx` | **DELETED** |
+| Access Tier 2 page | `src/pages/AccessTier2Page.tsx` | **DELETED** (content migrated into `ExclusivePage`) |
+| Access Tier 3 page | `src/pages/AccessTier3Page.tsx` | **DELETED** (content was duplicate of Admin; redirects to `/admin`) |
+| Access banner `Control user access levels in the admin area.` | `AccessPage.tsx` | **REMOVED** with file |
+| Blue tier-nav buttons (Customer / Exclusive / Admin) | `AccessPage.tsx` | **REMOVED** — nav tabs replace them |
+| Per-page `cartToggleBtn` pulsing cart | `AccessTier2Page.tsx`, `MemberBillingPanel.tsx` | **REMOVED** — cart is now the single top-nav button |
+| `paymeShell` wrapper on page roots | `pages/*.tsx` | **REMOVED** from page roots; `paymeShell` class now scoped to `WorkspaceTile` body (so `adminBlock`, `paymeInvoiceRow`, etc. overrides still apply) |
+
+---
+
+## 6. PROVIDER / SESSION BEHAVIOR (unchanged from prior pass)
+
+| Check | File | Result |
+|-------|------|--------|
+| `DemoGateProvider` wraps `RouterProvider` | `main.tsx` | **PASS** |
+| `PayMeCartProvider` wraps app tree inside `AppShell` | `AppShell.tsx` | **PASS** |
+| `useDemoGate()` retained by `AdminPanel`, `MemberBillingPanel`-adjacent flows | unchanged | **PASS** |
+| Tier guards (`tier2Unlocked`, `tier3Unlocked`) no longer enforced at page level | — | **NOTE** — old gates were attached to redirects that no longer apply; gate system remains OFF per build-sheet directive |
+
+---
+
+## 7. INTERACTION RULES
+
+| Rule | State |
+|------|-------|
+| No background click blocking | `.workspaceTile`/`.paymeSidePanel` are opaque but not full-screen; wallpaper remains interactable outside tile footprint. No invisible overlay is introduced. | **PASS** |
+| Tile overlays sit above wallpaper but below nav | `z-index: 3` (workspace), `40` (PayMe panel), `50` (nav) | **PASS** |
+| Consistent z hierarchy | Same across Exclusive, Customer, Admin, Engage, Referrals, Skins, PayMe | **PASS** |
 
 ---
 
@@ -189,20 +157,20 @@ fires on initial render. Build sheet outcome satisfied.
 
 | Pass gate condition | Status | Evidence |
 |--------------------|--------|---------|
-| `/access` works | **PASS** | Route registered; component renders; tier nav buttons wire to correct sub-routes; `npm run typecheck` exit 0 |
-| Required pages are not incorrectly locked or blocked | **PASS** | Gate OFF in router; all tier initial states are `true`; no `RequireGate` wrapping |
-| PayMe-linked behavior works within scope | **PASS** | `/payme` iframe resolved; `dist/apps/payme/index.html` present; `build:payme` now in build chain (FIXED) |
-| Build proof exists | **PASS** | `npm run build` exits 0; all module outputs confirmed in `dist/`; both engage and payme bundles present |
-| No unresolved in-scope blocker remains | **PASS** | `build:payme` gap patched; deferred text removed; page key fixed; tier guards open by default; TS clean |
+| Nav matches spec (tabs, logo, sizes) | **PASS** | `TopNav.tsx` + `nav.css` |
+| All workspaces render inside unified WorkspaceTile | **PASS** | `WorkspaceTile.tsx` used by Exclusive, Customer, Admin, Engage, Referrals, Skins, PayMe |
+| PayMe reachable via cart toggle AND direct route | **PASS** | `PayMePanel` + cart toggle in nav; `/payme` route retained |
+| Access banner + tier buttons removed | **PASS** | `AccessPage*` files deleted; legacy routes redirect |
+| No duplicate / stale layouts | **PASS** | All pages share the same `PageShell → WorkspaceTile` pattern |
+| Click-blocking / pointer-events regressions | **PASS** | Opaque tile only; no invisible fullscreen overlays |
 
 ---
 
-## 9. OPEN ITEMS (ADVISORY — NOT IN WORKER A SCOPE)
+## 9. OPEN ITEMS (ADVISORY)
 
 | Item | Owner | Notes |
 |------|-------|-------|
-| `transferUsdc` stub in `apps/modules/payme/src/services/usdcTransfer.js` | Future feature pass | Returns `{ success: false, error: "not implemented" }`; form submits but result shows error; acceptable for deploy |
-| `TENANTS_BUCKET` R2 binding | Deployment operator | Must be set in Cloudflare Pages dashboard; handlers return 500 if absent; PayMe not affected |
-| Node version not pinned | Deployment operator / next pass | No `.nvmrc`; stage_3 and stage_4 builds ran on Node v22.22.2 |
-| `/apps/referrals/*` and `/apps/vault/*` `_redirects` rules | Next module pass | These rules match before `/*`; without module outputs they return 404 rather than falling to SPA |
-| `RequireGate` → `DemoGateContext` reconnect | Deferred | Gate is OFF; no observable impact; reconnect when gate is re-enabled |
+| USDC status / send card inside Exclusive page | Future pass | Previously in-page; currently delegated to PayMe side panel. Status display intentionally elided because it now lives inside the PayMe module iframe. |
+| Gate re-enable | Deferred | `RequireGate` still commented out in `router.tsx`; unrelated to this rebuild |
+| `transferUsdc` stub | Out of scope | Unchanged |
+| R2 exclusive tile hydration | Unchanged | `usePublishedExclusiveTiles` still keyed by `"tier-2"` upstream |

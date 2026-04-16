@@ -26,10 +26,9 @@
 }
 
 .brand { display: flex; align-items: center; gap: 10px; min-width: 230px; }
-.brandMark { width: 36px; height: 36px; }
+.brandMark { width: 40px; height: 40px; flex-shrink: 0; }
 .brandText { text-align: center; }
-.brandTitle { font-weight: 800; font-size: 21px; letter-spacing: .2px; line-height: 1.1; }
-.brandSub { font-size: 14px; color: rgba(255,255,255,.68); text-align: center; }
+.brandTitle { font-weight: 800; font-size: 27px; letter-spacing: .2px; line-height: 1.1; }
 
 .navLinks {
   display: flex;
@@ -51,7 +50,7 @@
   background: transparent;
   border: none;
   color: rgba(255,255,255,.88);
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 700;
   cursor: pointer;
   padding: 0;
@@ -69,6 +68,7 @@
   align-items: center;
 }
 .cartIconBtn:hover { color: #fff; }
+.cartIconBtn.active { color: #60a5fa; }
 
 .navGate {
   display: flex;
@@ -79,7 +79,7 @@
 }
 
 .navBtn {
-  font-size: 12px;
+  font-size: 14px;
   padding: 8px 12px;
   border-radius: 999px;
   border: none;
@@ -108,8 +108,8 @@
 }
 
 .navLink {
-  font-size: 13px;
-  padding: 8px 12px;
+  font-size: 16px;
+  padding: 8px 14px;
   border-radius: 999px;
   border: none;
   color: rgba(255,255,255,.78);
@@ -127,7 +127,6 @@
 
 @media (max-width: 860px) {
   .brand { min-width: auto; }
-  .brandSub { display: none; }
 }
 
 
@@ -142,12 +141,11 @@
     background: rgba(10, 10, 14, .80);
   }
 
-  .brandMark { width: 28px; height: 28px; }
-  .brandTitle { font-size: 14px; }
-  .brandSub { display: none; }
+  .brandMark { width: 30px; height: 30px; }
+  .brandTitle { font-size: 18px; }
 
-  .brandTitleDesktop, .brandSubDesktop { display: none; }
-  .brandTitleMobile, .brandSubMobile { display: inline; }
+  .brandTitleDesktop { display: none; }
+  .brandTitleMobile { display: inline; }
 
   .navLinks { display: none; }
 
@@ -207,8 +205,8 @@
 
 @media (max-width: 900px) and (hover: none) and (pointer: coarse) {
   :root { --nav-h: 60px; }
-  .brandTitleDesktop, .brandSubDesktop { display: none; }
-  .brandTitleMobile, .brandSubMobile { display: inline; }
+  .brandTitleDesktop { display: none; }
+  .brandTitleMobile { display: inline; }
   .navLinks { display: none; }
   .mobileMenuBtn { display: inline-flex; }
   .demoBypassDesktop { display: none; }
@@ -217,7 +215,7 @@
 
 
 /* Defaults for desktop */
-.brandTitleMobile, .brandSubMobile { display: none; }
+.brandTitleMobile { display: none; }
 .mobileMenuBtn { display: none; }
 .mobileDemoBypass { display: none; }
 .demoBypassDesktop { display: block; }
@@ -236,7 +234,7 @@
   }
 
   .mobileInlineLink {
-    font-size: 13px;
+    font-size: 16px;
     font-weight: 700;
     padding: 6px 12px;
     border-radius: 999px;
