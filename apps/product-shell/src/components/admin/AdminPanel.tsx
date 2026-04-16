@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useDemoGate } from "../../state/demoGateState";
 
 const MOCK_EMPLOYEES = [
@@ -94,7 +94,6 @@ export function AdminPanel() {
         <div className="adminActions">
           <button className="adminBtn" type="button" onClick={actions.toggleTier1}>Toggle T1</button>
           <button className="adminBtn" type="button" onClick={actions.toggleTier2}>Toggle T2</button>
-          <button className="adminBtn" type="button" onClick={actions.toggleTier3}>Toggle T3</button>
         </div>
         <div className="adminActions" style={{ marginTop: 4 }}>
           <button className="adminBtn primary" type="button" onClick={() => { actions.unlockTier1(); actions.unlockTier2(); actions.unlockTier3(); }}>Unlock All</button>
