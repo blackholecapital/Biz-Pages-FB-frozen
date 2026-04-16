@@ -36,14 +36,14 @@
 
 .pageShellContent {
   padding: var(--pad);
-  padding-top: calc(var(--nav-h) + var(--pad));
-  max-width: 1100px;
+  padding-top: calc(var(--nav-h) + 12px);
+  max-width: none;
   margin: 0 auto;
 }
 
 @media (max-width: 900px) {
   .pageShellContent {
-    padding: 10px;
+    padding: 8px;
     padding-top: calc(var(--nav-h) + 4px);
   }
 }

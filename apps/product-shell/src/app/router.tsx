@@ -1,12 +1,10 @@
-import { createBrowserRouter } from "react-router-dom";
+import { createBrowserRouter, Navigate } from "react-router-dom";
 import { AppShell } from "./AppShell";
 
 import { HomePage } from "../pages/HomePage";
 import { MembersPage } from "../pages/MembersPage";
-import { AccessPage } from "../pages/AccessPage";
-import { AccessTier1Page } from "../pages/AccessTier1Page";
-import { AccessTier2Page } from "../pages/AccessTier2Page";
-import { AccessTier3Page } from "../pages/AccessTier3Page";
+import { ExclusivePage } from "../pages/ExclusivePage";
+import { CustomerPage } from "../pages/CustomerPage";
 import { PayMePage } from "../pages/PayMePage";
 import { EngagePage } from "../pages/EngagePage";
 import { ReferralsPage } from "../pages/ReferralsPage";
@@ -21,28 +19,15 @@ import { AdminPage } from "../pages/AdminPage";
  * DEV NOTES — quick-reference for common configuration changes
  * ──────────────────────────────────────────────────────────────
  *
- * 1. GATE ON/OFF
- *    The gate (RequireGate) is currently DISABLED so all pages
- *    are publicly reachable from the homepage.
- *    To turn it back on:
- *      a) Uncomment the RequireGate import above.
- *      b) Find the "GATED ROUTES" comment blocks below and
- *         re-wrap those route arrays inside:
- *           { element: <RequireGate />, children: [ ...routes ] }
- *      c) The original gated structure is preserved in comments
- *         at the bottom of this file for easy copy-paste.
+ * NAV TABS (top bar): Home, Members, Exclusive, Customer, Admin.
+ * PayMe is reachable only through the nav cart icon (side panel)
+ * and the legacy /payme route (kept for direct links/embeds).
  *
- * 2. MAIN WALLPAPER
- *    The wallpaper image is set in the PageShell component
- *    (src/components/layout/PageShell.tsx) via the background
- *    config (src/config/backgrounds.ts or similar). Change the
- *    image URL there to swap the main wallpaper.
+ * Engage / Referrals / Skins remain accessible by direct path;
+ * they are not present in the nav tab list.
  *
- * 3. HOMEPAGE TITLE
- *    Edit src/pages/HomePage.tsx — the <h1> in homeHeroTitle.
- *
- * 4. BRAND NAME (top-left nav text)
- *    Edit src/components/nav/TopNav.tsx — brandTitleDesktop span.
+ * Legacy /access, /access/tier-1..3 paths redirect to the new
+ * Exclusive / Customer / Admin surfaces.
  * ──────────────────────────────────────────────────────────────
  */
 
@@ -63,16 +48,10 @@ export const router = createBrowserRouter([
       { path: ":designation/:slug", element: <HomePage />, handle: { pageKey: "home" } },
       { path: ":designation/:slug/gate", element: <HomePage />, handle: { pageKey: "home" } },
 
-      // ── GATED ROUTES (gate currently DISABLED — all public) ──
-      // To re-enable, wrap these in { element: <RequireGate />, children: [...] }
-
       // Base pages
       { path: "members", element: <MembersPage />, handle: { pageKey: "members" } },
-
-      { path: "access", element: <AccessPage />, handle: { pageKey: "access" } },
-      { path: "access/tier-1", element: <AccessTier1Page />, handle: { pageKey: "payme" } },
-      { path: "access/tier-2", element: <AccessTier2Page />, handle: { pageKey: "tier-2" } },
-      { path: "access/tier-3", element: <AccessTier3Page />, handle: { pageKey: "admin" } },
+      { path: "exclusive", element: <ExclusivePage />, handle: { pageKey: "exclusive" } },
+      { path: "customer", element: <CustomerPage />, handle: { pageKey: "customer" } },
 
       { path: "payme", element: <PayMePage />, handle: { pageKey: "payme" } },
       { path: "engage", element: <EngagePage />, handle: { pageKey: "engage" } },
@@ -80,13 +59,16 @@ export const router = createBrowserRouter([
       { path: "skins", element: <SkinMarketplacePage />, handle: { pageKey: "skins" } },
       { path: "admin", element: <AdminPage />, handle: { pageKey: "admin" } },
 
+      // Legacy access redirects
+      { path: "access", element: <Navigate to="/exclusive" replace /> },
+      { path: "access/tier-1", element: <Navigate to="/customer" replace /> },
+      { path: "access/tier-2", element: <Navigate to="/exclusive" replace /> },
+      { path: "access/tier-3", element: <Navigate to="/admin" replace /> },
+
       // Tenant slug pages
       { path: ":slug/gate/members", element: <MembersPage />, handle: { pageKey: "members" } },
-
-      { path: ":slug/gate/access", element: <AccessPage />, handle: { pageKey: "access" } },
-      { path: ":slug/gate/access/tier-1", element: <AccessTier1Page />, handle: { pageKey: "payme" } },
-      { path: ":slug/gate/access/tier-2", element: <AccessTier2Page />, handle: { pageKey: "tier-2" } },
-      { path: ":slug/gate/access/tier-3", element: <AccessTier3Page />, handle: { pageKey: "admin" } },
+      { path: ":slug/gate/exclusive", element: <ExclusivePage />, handle: { pageKey: "exclusive" } },
+      { path: ":slug/gate/customer", element: <CustomerPage />, handle: { pageKey: "customer" } },
 
       { path: ":slug/gate/payme", element: <PayMePage />, handle: { pageKey: "payme" } },
       { path: ":slug/gate/engage", element: <EngagePage />, handle: { pageKey: "engage" } },
@@ -96,11 +78,8 @@ export const router = createBrowserRouter([
 
       // Designated pages
       { path: ":designation/:slug/members", element: <MembersPage />, handle: { pageKey: "members" } },
-
-      { path: ":designation/:slug/access", element: <AccessPage />, handle: { pageKey: "access" } },
-      { path: ":designation/:slug/access/tier-1", element: <AccessTier1Page />, handle: { pageKey: "payme" } },
-      { path: ":designation/:slug/access/tier-2", element: <AccessTier2Page />, handle: { pageKey: "tier-2" } },
-      { path: ":designation/:slug/access/tier-3", element: <AccessTier3Page />, handle: { pageKey: "admin" } },
+      { path: ":designation/:slug/exclusive", element: <ExclusivePage />, handle: { pageKey: "exclusive" } },
+      { path: ":designation/:slug/customer", element: <CustomerPage />, handle: { pageKey: "customer" } },
 
       { path: ":designation/:slug/payme", element: <PayMePage />, handle: { pageKey: "payme" } },
       { path: ":designation/:slug/engage", element: <EngagePage />, handle: { pageKey: "engage" } },

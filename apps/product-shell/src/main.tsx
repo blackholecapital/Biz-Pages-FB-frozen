@@ -7,6 +7,7 @@ import { DemoGateProvider } from "./state/demoGateState";
 import "./styles/global.css";
 import "./styles/shell.css";
 import "./styles/nav.css";
+import "./styles/workspace.css";
 import "./styles/cards.css";
 import "./styles/gate.css";
 import "./styles/admin.css";

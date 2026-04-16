@@ -1,13 +1,13 @@
 import { PageShell } from "../components/layout/PageShell";
+import { WorkspaceTile } from "../components/layout/WorkspaceTile";
 import { MemberBillingPanel } from "../features/payme/MemberBillingPanel";
 
-export function AccessTier1Page() {
+export function CustomerPage() {
   return (
     <PageShell>
-      <div className="paymeShell">
-        <h1 className="pageTitle" style={{ color: "#fff", textAlign: "center", marginBottom: 12 }}>Customer Service</h1>
+      <WorkspaceTile title="Customer Service">
         <MemberBillingPanel />
-      </div>
+      </WorkspaceTile>
     </PageShell>
   );
 }
