@@ -553,3 +553,27 @@ import path after gate subtree reconstruction.
 Notes:
 - This fallback run intentionally did not execute any build/install command.
 - Result is suitable for the next controlled reconstruction dispatch.
+
+---
+
+## 19. Appended static import-edge detection (S3.6 fallback dispatch)
+
+Task dispatch: perform STATIC import scan across `src/app/`, `src/pages/`,
+`src/features/`, `src/components/`, and `src/utils/` to identify the next
+unresolved relative import path after utils subtree reconstruction.
+
+| field | value |
+|---|---|
+| method | static source scan (no npm, no vite) |
+| scanned roots | `apps/product-shell/src/app/`, `apps/product-shell/src/pages/`, `apps/product-shell/src/features/`, `apps/product-shell/src/components/`, `apps/product-shell/src/utils/` |
+| file traversal order | lexical (`app/` → `pages/` → `features/` → `components/` → `utils/`; files sorted) |
+| import traversal order | top-to-bottom line order per file (commented lines ignored) |
+| first unresolved import | `../hooks/usePublishedExclusiveTiles` |
+| source file | `apps/product-shell/src/pages/AccessTier2Page.tsx` |
+| source line | 7 |
+| resolved target path attempted | `apps/product-shell/src/hooks/usePublishedExclusiveTiles.{ts,tsx,js,jsx}` and `apps/product-shell/src/hooks/usePublishedExclusiveTiles/index.{ts,tsx,js,jsx}` |
+| detection result | missing target file (next unresolved static edge) |
+
+Notes:
+- This fallback run intentionally did not execute any build/install command.
+- Result is suitable for the next controlled reconstruction dispatch.

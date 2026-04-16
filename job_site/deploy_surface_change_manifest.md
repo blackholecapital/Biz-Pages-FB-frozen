@@ -1269,3 +1269,55 @@ Still deferred and intentionally untouched by this pass:
 | branch | work |
 | commit_hash | (recorded post-commit; see git log) |
 | pushed_to | (push attempted post-commit) |
+
+## 20. Append — Hooks Subtree Reconstruction Pass (S3.7 task dispatch)
+
+job_id: RB-INT-CHASSIS-002
+stage: S3.7
+pass: product-shell hooks subtree reconstruction (`src/hooks/` only; resolve AccessTier2Page usePublishedExclusiveTiles import edge)
+worker: worker_a
+branch: work
+
+### 20.1 Goal and scope lock
+
+Goal: reconstruct full `src/hooks/` subtree required to satisfy
+`src/pages/AccessTier2Page.tsx -> ../hooks/usePublishedExclusiveTiles` static
+import edge.
+
+Created in this pass:
+
+- `apps/product-shell/src/hooks/usePublishedExclusiveTiles.ts`
+- `apps/product-shell/src/hooks/useViewportMode.ts`
+
+No files outside `apps/product-shell/src/hooks/` were created for this pass.
+
+### 20.2 Direct dependency closure inside hooks subtree
+
+- `usePublishedExclusiveTiles.ts` imports runtime-only modules:
+  `../runtime/exclusiveTileHydration` and `../runtime/publishedClient`.
+- `usePublishedExclusiveTiles.ts` has no hooks-local sibling imports.
+- `useViewportMode.ts` is self-contained and requires no hooks-local siblings.
+
+### 20.3 Verification
+
+Static import presence check confirms `../hooks/usePublishedExclusiveTiles` from
+`src/pages/AccessTier2Page.tsx` resolves to
+`apps/product-shell/src/hooks/usePublishedExclusiveTiles.ts`.
+
+### 20.4 Out-of-scope handoff
+
+Still deferred and intentionally untouched by this pass:
+
+- non-hooks missing subtrees (`src/integrations/`, `src/config/`, `src/contracts/`)
+- runtime/API behavior validation requiring full build execution
+
+### 20.5 Repo mirror / commit / push evidence
+
+| field | value |
+|---|---|
+| repo_mirror | yes — writes made under `/workspace/gateway-fullbody-freeze/apps/product-shell/src/hooks/` and manifest append |
+| commit_required | yes |
+| push_required | yes |
+| branch | work |
+| commit_hash | (recorded post-commit; see git log) |
+| pushed_to | (push attempted post-commit) |
