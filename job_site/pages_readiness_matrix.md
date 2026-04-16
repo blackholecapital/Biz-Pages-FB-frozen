@@ -38,7 +38,7 @@ document_role: Record PASS/FAIL verdict for each Cloudflare Pages deployment rea
 | 2.5 | Output directory | `apps/product-shell/dist` (deploy_root_plan.md §4) | cannot exist until build runs; build is FAIL (2.4) | BLOCKED |
 | 2.6 | Vite build config | `apps/product-shell/vite.config.ts` declaring `plugins: [react()], server: { port: 5173 }` (full_parity_target_path_manifest.yaml §SECTION 3) | file exists (161 bytes); content matches | PASS |
 | 2.7 | TypeScript configs | `apps/product-shell/tsconfig.json` + `apps/product-shell/tsconfig.node.json` (full_parity_target_path_manifest.yaml §SECTION 3) | both files exist | PASS |
-| 2.8 | Baseline sibling module graph | `apps/modules/{engage,payme,referrals,vault}/` with `package.json`, `vite.config.js`, `index.html`, `src/`, etc. per full_parity_target_path_manifest.yaml §SECTION 7 | **engage:** fully reconstructed (31 files, byte-equal to baseline) per commit 5e44c61. **payme:** minimal unblock only (2 files: verbatim `package.json` + non-baseline stub `src/index.jsx`) per commit c6d0bd5; `vite.config.js`, `index.html`, and baseline src subtree (30 files) still MISSING. **referrals:** MISSING entirely. **vault:** MISSING entirely. | PARTIAL PASS (engage full + payme minimal; referrals/vault still MISSING) |
+| 2.8 | Baseline sibling module graph (DEPLOY-CRITICAL scope) | `apps/modules/{engage,payme}/` required for this readiness pass; `apps/modules/{referrals,vault}` explicitly treated as deferred non-blocking surfaces | **engage:** fully reconstructed (31 files, byte-equal to baseline) per commit 5e44c61. **payme:** minimal unblock only (2 files: verbatim `package.json` + non-baseline stub `src/index.jsx`) per commit c6d0bd5; `vite.config.js`, `index.html`, and baseline src subtree (30 files) still MISSING. **referrals/vault:** DEFERRED (non-blocking for S5 readiness in this DEPLOY-CRITICAL re-evaluation). | PARTIAL PASS (engage full + payme minimal; referrals/vault DEFERRED) |
 | 2.9 | Redirects file | `apps/product-shell/public/_redirects` with canonical rules including `/apps/{payme,engage,referrals,vault}/*` fallthrough and SPA fallback `/*  /index.html  200` | file exists (214 bytes) with declared shape | PASS |
 | 2.10 | Public assets directory | `apps/product-shell/public/` | directory exists (contains `_redirects`); extended asset tree deferred per scope_lock | PASS (directory shape) |
 | 2.11 | Pages Functions directory | `apps/product-shell/functions/` | directory exists with `api/` and `_lib/` subdirectories | PASS |
@@ -70,11 +70,11 @@ document_role: Record PASS/FAIL verdict for each Cloudflare Pages deployment rea
 | document consistency | 0 | 0 | 1 | 0 | 0 |
 | **Total** | **15** | **1** | **2** | **1** | **0** |
 
-**Headline verdict: FAIL (Pages deploy not buildable yet).** 15 of 19 Pages readiness criteria PASS (including the new 2.19 install-unit resolvability verification). 1 PARTIAL (2.8 module graph — engage full, payme minimal, referrals/vault missing). 2 FAIL (2.4 `vite build` import graph incomplete; 2.17 deploy-root document divergence). 1 BLOCKED (2.5 `dist/` dependent on 2.4).
+**Headline verdict: FAIL (Pages deploy not buildable yet).** 15 of 19 Pages readiness criteria PASS (including the new 2.19 install-unit resolvability verification). 1 PARTIAL (2.8 module graph — engage full, payme minimal, referrals/vault DEFERRED as non-blocking). 2 FAIL (2.4 `vite build` import graph incomplete; 2.17 deploy-root document divergence). 1 BLOCKED (2.5 `dist/` dependent on 2.4).
 
 The `build:engage` half of the build chain is now FULLY UNBLOCKED by the current engage reconstruction (see 2.19). The failing point of `npm run build` has moved downstream from `build:engage` to `vite build`, where the deploy-app import graph (src/components, src/state, src/styles, src/mobile, src/pages, src/features, etc.) remains incomplete.
 
-The payme minimal unblock does NOT change any readiness criterion verdict because `apps/product-shell/package.json` has no `build:payme` script and Cloudflare Pages build resolvability depends only on `build:engage`, not on payme/referrals/vault presence.
+The payme minimal unblock does NOT change any readiness criterion verdict because `apps/product-shell/package.json` has no `build:payme` script and Cloudflare Pages build resolvability depends only on `build:engage`. In this DEPLOY-CRITICAL pass, `modules/referrals` and `modules/vault` are explicitly DEFERRED and NON-BLOCKING for S5 readiness.
 
 ---
 
@@ -108,14 +108,14 @@ These subtrees are tracked as CRITICAL open items PATCH-RB002-023 through PATCH-
 | 2.4 build command resolves | FAIL | FAIL | unchanged — `vite build` graph still incomplete |
 | 2.5 output dir | BLOCKED | BLOCKED | unchanged |
 | 2.6–2.7 | PASS | PASS | unchanged |
-| 2.8 sibling module graph | PARTIAL PASS (engage only) | PARTIAL PASS (engage full + payme minimal) | payme directory + package.json + stub src/index.jsx added by commit c6d0bd5; still PARTIAL because vite.config.js, index.html, src subtree all MISSING for payme, and referrals+vault fully MISSING |
+| 2.8 sibling module graph | PARTIAL PASS (engage only) | PARTIAL PASS (engage full + payme minimal; referrals/vault DEFERRED) | payme directory + package.json + stub src/index.jsx added by commit c6d0bd5; row remains PARTIAL because payme still has parity gaps (`vite.config.js`, `index.html`, src subtree). Referrals/vault moved to DEFERRED non-blocking status for DEPLOY-CRITICAL scope. |
 | 2.9–2.14 | PASS | PASS | unchanged |
 | 2.15–2.16 | PASS (file) / FAIL (graph) | PASS (file) / FAIL (graph) | unchanged |
 | 2.17 document consistency | FAIL | FAIL | unchanged |
 | 2.18 runtime support tree | PASS | PASS | unchanged |
 | 2.19 install-unit resolvability (engage axis) | (new row) | PASS | added based on commit 7ad0199 verification |
 
-Net change: +1 new PASS row (2.19 explicit install-unit resolvability for engage via `npm --prefix ../modules/engage pkg get`), and one row (2.8) refined from "engage only" to "engage full + payme minimal" while remaining PARTIAL. No row changed overall verdict class (no FAIL → PASS transitions; no PASS → FAIL regressions).
+Net change: +1 new PASS row (2.19 explicit install-unit resolvability for engage via `npm --prefix ../modules/engage pkg get`), and one row (2.8) refined to `engage full + payme minimal` with referrals/vault now DEFERRED (non-blocking) under DEPLOY-CRITICAL scope while remaining PARTIAL. No row changed overall verdict class (no FAIL → PASS transitions; no PASS → FAIL regressions).
 
 ---
 
@@ -126,4 +126,4 @@ Net change: +1 new PASS row (2.19 explicit install-unit resolvability for engage
 - The document-consistency FAIL (row 2.17) is cross-referenced in `/job_site/patch_register.md` §3.
 - The build-import-graph FAIL (row 2.4) is cross-referenced in `/job_site/patch_register.md` §5 (PATCH-RB002-023..029).
 - The new row 2.19 (install-unit resolvability on the engage axis) is a PASS and cross-references `/job_site/module_surface_change_manifest.md` §12.4 for the verification tests.
-- Engage full + payme minimal are the parity deltas contributed by branch `claude/reconstruct-engage-modules-OdQZM`; referrals and vault remain untouched on this branch.
+- Engage full + payme minimal are the parity deltas contributed by branch `claude/reconstruct-engage-modules-OdQZM`; referrals and vault remain untouched on this branch and are DEFERRED/NON-BLOCKING for this DEPLOY-CRITICAL readiness determination.
