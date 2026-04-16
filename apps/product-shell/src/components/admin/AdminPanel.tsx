@@ -127,7 +127,7 @@ export function AdminPanel() {
 
       {/* 5 — NFT Mint */}
       <Block title="NFT Mint">
-        <KV label="Collection" value="Gateway Pass" />
+        <KV label="Collection" value="Biz Pages" />
         <KV label="Network" value="Base" />
         <KV label="Status" value={mintStatus || "Ready"} accent={mintStatus.startsWith("Minted") ? "#16a34a" : undefined} />
         <div className="adminActions">

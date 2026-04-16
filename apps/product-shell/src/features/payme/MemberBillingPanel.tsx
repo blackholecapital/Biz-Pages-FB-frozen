@@ -2,10 +2,10 @@ import { useState } from "react";
 import { usePayMeCart } from "../../state/paymeCartState";
 
 const MOCK_INVOICES = [
-  { id: "INV-1001", due: "Due Feb 21", amount: "$1.11" },
-  { id: "INV-1002", due: "Due Feb 24", amount: "$1.37" },
-  { id: "INV-1003", due: "Due Feb 28", amount: "$1.88" },
-  { id: "INV-1004", due: "Due Mar 02", amount: "$1.52" },
+  { id: "INV-1001", due: "Due Feb 21", amount: "$1.11", amountNum: 1.11 },
+  { id: "INV-1002", due: "Due Feb 24", amount: "$1.37", amountNum: 1.37 },
+  { id: "INV-1003", due: "Due Feb 28", amount: "$1.88", amountNum: 1.88 },
+  { id: "INV-1004", due: "Due Mar 02", amount: "$1.52", amountNum: 1.52 },
 ];
 
 const REFERRAL_STATS = [
@@ -22,7 +22,7 @@ export function MemberBillingPanel() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [copied, setCopied] = useState(false);
-  const { show: showPayMe } = usePayMeCart();
+  const { addItem } = usePayMeCart();
   const referralCode = "user1-x8k2m";
 
   function onCopy() {
@@ -31,10 +31,17 @@ export function MemberBillingPanel() {
     setTimeout(() => setCopied(false), 1400);
   }
 
-  function onPay(id: string, e: React.MouseEvent) {
+  function onPay(inv: (typeof MOCK_INVOICES)[number], e: React.MouseEvent) {
     e.stopPropagation();
-    setPaidIds((prev) => new Set([...prev, id]));
-    showPayMe();
+    setPaidIds((prev) => new Set([...prev, inv.id]));
+    addItem({
+      id: `invoice-${inv.id}`,
+      sku: inv.id,
+      name: `Invoice ${inv.id}`,
+      description: inv.due,
+      setupPrice: inv.amountNum,
+      qty: 1,
+    });
   }
 
   return (
@@ -71,7 +78,7 @@ export function MemberBillingPanel() {
                   <button
                     type="button"
                     className="primaryBtn"
-                    onClick={(e) => onPay(inv.id, e)}
+                    onClick={(e) => onPay(inv, e)}
                     disabled={isPaid}
                     style={{ borderRadius: 8, minWidth: 44 }}
                   >

@@ -1,77 +1,43 @@
 import { useMemo, useState } from "react";
+import { intervalLabel, usePayMeCart } from "../../state/paymeCartState";
 
-type BasketItem = {
-  id: string;
-  name: string;
-  description?: string;
-  unitPrice: number;
-  qty: number;
-  recurring?: "month" | "year";
+const COUPONS: Record<string, { type: "percent" | "fixed"; value: number; label?: string }> = {
+  LAUNCH30: { type: "percent", value: 30, label: "Launch Party — 30% OFF" },
+  USDC10: { type: "percent", value: 10, label: "Extra 10% OFF with USDC" },
+  SAVE10: { type: "fixed", value: 10, label: "$10 off" },
 };
 
-type SubscriptionOffer = {
-  id: string;
-  name: string;
-  price: number;
-  interval: "month" | "year";
-};
+type Method = "apple" | "google" | "card" | "usdc";
 
-const SEED_ITEMS: BasketItem[] = [
-  { id: "api-pro-plan", name: "API Pro Plan", description: "Monthly API access — 50 000 calls", unitPrice: 49, qty: 1 },
-  { id: "extra-seat", name: "Extra Team Seat", description: "Additional user licence", unitPrice: 12, qty: 3 },
-  { id: "priority-support", name: "Priority Support Add-on", description: "24/7 priority email & chat", unitPrice: 29, qty: 1 },
-];
-
-const SUBS: SubscriptionOffer[] = [
-  { id: "pro-plan-sub", name: "Pro Plan", price: 29, interval: "month" },
-  { id: "team-plan-sub", name: "Team Plan", price: 249, interval: "year" },
-];
-
-const COUPONS: Record<string, { type: "percent" | "fixed"; value: number }> = {
-  LAUNCH30: { type: "percent", value: 30 },
-  SAVE10: { type: "fixed", value: 10 },
-};
-
-export type BasketCheckout = {
-  items: BasketItem[];
-  subtotal: number;
-  discount: number;
-  total: number;
-  coupon?: string;
-};
-
-export function Basket({ onCheckout }: { onCheckout?: (result: BasketCheckout) => void }) {
-  const [items, setItems] = useState<BasketItem[]>(SEED_ITEMS);
+export function Basket() {
+  const { items, updateQty, removeItem } = usePayMeCart();
   const [couponCode, setCouponCode] = useState("");
-  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; amountOff: number } | null>(null);
+  const [applied, setApplied] = useState<{ code: string; amountOff: number } | null>(null);
   const [couponMsg, setCouponMsg] = useState("");
+  const [method, setMethod] = useState<Method>("card");
+  const [showUsdcHelp, setShowUsdcHelp] = useState(false);
   const [confirmed, setConfirmed] = useState<string | null>(null);
 
   const totals = useMemo(() => {
     const active = items.filter((i) => i.qty > 0);
-    const subtotal = active.reduce((sum, i) => sum + i.unitPrice * i.qty, 0);
-    const discount = appliedCoupon ? Math.min(appliedCoupon.amountOff, subtotal) : 0;
-    const total = Math.max(0, subtotal - discount);
-    const itemCount = active.reduce((n, i) => n + i.qty, 0);
-    const hasRecurring = active.some((i) => i.recurring);
-    return { subtotal, discount, total, itemCount, hasRecurring };
-  }, [items, appliedCoupon]);
-
-  function updateQty(id: string, delta: number) {
-    setItems((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, qty: Math.max(0, item.qty + delta) } : item))
-    );
-  }
-  function removeItem(id: string) {
-    setItems((prev) => prev.filter((i) => i.id !== id));
-  }
-  function addSubscription(sub: SubscriptionOffer) {
-    if (items.some((i) => i.id === sub.id)) return;
-    setItems((prev) => [
-      ...prev,
-      { id: sub.id, name: sub.name, description: `Subscription (${sub.interval})`, unitPrice: sub.price, qty: 1, recurring: sub.interval },
-    ]);
-  }
+    const setupSubtotal = active.reduce((sum, i) => sum + (i.setupPrice ?? 0) * i.qty, 0);
+    const monthlyRecurring = active.reduce((sum, i) => sum + (i.monthlyPrice ?? 0) * i.qty, 0);
+    const usdcBonus = method === "usdc" ? (setupSubtotal * 10) / 100 : 0;
+    const couponDiscount = applied
+      ? applied.code === "USDC10" && method !== "usdc"
+        ? 0
+        : Math.min(applied.amountOff, setupSubtotal)
+      : 0;
+    const discount = couponDiscount + usdcBonus;
+    const totalDue = Math.max(0, setupSubtotal - discount);
+    return {
+      setupSubtotal,
+      monthlyRecurring,
+      discount,
+      totalDue,
+      hasRecurring: monthlyRecurring > 0,
+    };
+  }, [items, applied, method]);
 
   function applyCoupon() {
     const code = couponCode.trim().toUpperCase();
@@ -81,131 +47,226 @@ export function Basket({ onCheckout }: { onCheckout?: (result: BasketCheckout) =
     }
     const c = COUPONS[code];
     if (!c) {
-      setAppliedCoupon(null);
+      setApplied(null);
       setCouponMsg(`Coupon "${code}" not found.`);
       return;
     }
-    const amountOff = c.type === "percent" ? (totals.subtotal * c.value) / 100 : c.value;
-    setAppliedCoupon({ code, amountOff });
-    setCouponMsg(`Coupon ${code} applied.`);
+    const amountOff = c.type === "percent" ? (totals.setupSubtotal * c.value) / 100 : c.value;
+    setApplied({ code, amountOff });
+    setCouponMsg(`Coupon ${code} applied${c.label ? ` — ${c.label}` : ""}.`);
   }
 
-  function proceed() {
-    const active = items.filter((i) => i.qty > 0);
-    if (!active.length) return;
-    const result: BasketCheckout = {
-      items: active,
-      subtotal: totals.subtotal,
-      discount: totals.discount,
-      total: totals.total,
-      coupon: appliedCoupon?.code,
-    };
-    onCheckout?.(result);
-    setConfirmed(`Charged $${totals.total.toFixed(2)} (demo). ${active.length} line item(s).`);
-    setTimeout(() => setConfirmed(null), 3000);
+  function pay() {
+    if (!items.length) return;
+    setConfirmed(`Demo: charged $${totals.totalDue.toFixed(2)} via ${method.toUpperCase()}.`);
+    setTimeout(() => setConfirmed(null), 3200);
   }
+
+  const payBtnLabel = items.length ? `Pay $${totals.totalDue.toFixed(2)} securely` : "Basket is empty";
 
   return (
-    <div className="paymeBasket">
-      <div className="paymeBasketHead">
-        <h2 className="paymeBasketTitle">Your basket</h2>
-        <p className="paymeBasketSub">Review items before checkout.</p>
+    <div className="paymeCheckout">
+      <div className="paymeCheckoutHead">
+        <div className="paymeCheckoutTitle">PayMe Checkout</div>
+        <div className="paymeCheckoutDrop" aria-hidden>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="#3B82F6">
+            <path d="M12 2l5.5 8.5a6.5 6.5 0 11-11 0L12 2z" />
+          </svg>
+        </div>
       </div>
 
-      {items.length === 0 ? (
-        <div className="paymeBasketEmpty">Basket is empty.</div>
-      ) : (
-        <div className="paymeBasketList">
-          {items.map((item) => (
-            <div key={item.id} className="paymeBasketRow">
-              <div className="paymeBasketRowInfo">
-                <div className="paymeBasketRowName">
-                  {item.name}
-                  {item.recurring && <span className="paymeBasketRecurring"> / {item.recurring}</span>}
+      {/* Review your order */}
+      <div className="paymeReviewCard">
+        <div className="paymeReviewHead">
+          <div className="paymeSectionTitle">Review your order</div>
+          <button
+            type="button"
+            className="paymeUsdcHelp"
+            onClick={() => setShowUsdcHelp(true)}
+          >
+            <span className="paymeUsdcDot">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="#3B82F6">
+                <circle cx="12" cy="12" r="10" fillOpacity=".12" />
+                <path d="M12 7v10M8 10h8M8 14h8" stroke="#3B82F6" strokeWidth="1.5" fill="none" />
+              </svg>
+            </span>
+            USDC Pmt ?
+          </button>
+        </div>
+
+        {items.length === 0 ? (
+          <div className="paymeReviewEmpty">
+            Basket is empty — add exclusive content or pay an invoice to start.
+          </div>
+        ) : (
+          <div className="paymeReviewList">
+            {items.map((item) => (
+              <div key={item.id} className="paymeReviewItem">
+                <div className="paymeReviewTopRow">
+                  <div className="paymeReviewItemHead">
+                    <span className="paymeReviewItemName">{item.name}</span>
+                    <span className="paymeReviewItemSku">SKU {item.sku}</span>
+                  </div>
+                  <button
+                    type="button"
+                    className="paymeReviewRemove"
+                    onClick={() => removeItem(item.id)}
+                    aria-label="Remove"
+                  >
+                    ×
+                  </button>
                 </div>
-                {item.description && <div className="paymeBasketRowDesc">{item.description}</div>}
+                {item.setupPrice != null && (
+                  <div className="paymeReviewRow">
+                    <span>{item.monthlyPrice != null ? "Setup (one-time)" : "Price"}</span>
+                    <span>
+                      ${(item.setupPrice * item.qty).toFixed(2)}
+                    </span>
+                  </div>
+                )}
+                {item.monthlyPrice != null && (
+                  <div className="paymeReviewRow recurring">
+                    <span>Recurring</span>
+                    <span>
+                      ${(item.monthlyPrice * item.qty).toFixed(2)} {intervalLabel(item.interval)}
+                    </span>
+                  </div>
+                )}
+                {item.qty > 1 && (
+                  <div className="paymeReviewQty">
+                    <button type="button" onClick={() => updateQty(item.id, -1)}>−</button>
+                    <span>{item.qty}</span>
+                    <button type="button" onClick={() => updateQty(item.id, 1)}>+</button>
+                  </div>
+                )}
               </div>
-              <div className="paymeBasketQty">
-                <button type="button" onClick={() => updateQty(item.id, -1)} aria-label="Decrease">−</button>
-                <span>{item.qty}</span>
-                <button type="button" onClick={() => updateQty(item.id, 1)} aria-label="Increase">+</button>
-              </div>
-              <div className="paymeBasketPrice">${(item.unitPrice * item.qty).toFixed(2)}</div>
-              <button type="button" className="paymeBasketRemove" onClick={() => removeItem(item.id)} aria-label="Remove">×</button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <div className="paymeBasketSection">
-        <div className="paymeBasketSectionLabel">Add a subscription</div>
-        <div className="paymeBasketSubs">
-          {SUBS.map((sub) => {
-            const added = items.some((i) => i.id === sub.id);
-            return (
-              <button
-                key={sub.id}
-                type="button"
-                className="paymeBasketSubBtn"
-                disabled={added}
-                onClick={() => addSubscription(sub)}
-              >
-                + {sub.name} (${sub.price}/{sub.interval === "month" ? "mo" : "yr"})
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="paymeBasketSection">
-        <label className="paymeBasketSectionLabel" htmlFor="coupon-input">Coupon code</label>
-        <div className="paymeBasketCouponRow">
-          <input
-            id="coupon-input"
-            type="text"
-            value={couponCode}
-            onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-            placeholder="Enter code"
-          />
-          <button type="button" className="paymeBasketApply" onClick={applyCoupon}>Apply</button>
-        </div>
-        {couponMsg && (
-          <div className={"paymeBasketCouponMsg" + (appliedCoupon ? " ok" : "")}>{couponMsg}</div>
-        )}
-      </div>
-
-      <div className="paymeBasketTotals">
-        <div className="paymeBasketTotalRow">
-          <span>Subtotal ({totals.itemCount} items)</span>
-          <span>${totals.subtotal.toFixed(2)}</span>
-        </div>
-        {totals.discount > 0 && (
-          <div className="paymeBasketTotalRow discount">
-            <span>Discount</span>
-            <span>− ${totals.discount.toFixed(2)}</span>
+            ))}
           </div>
         )}
-        <div className="paymeBasketTotalRow grand">
-          <span>Estimated total</span>
-          <span>${totals.total.toFixed(2)}</span>
-        </div>
-        {totals.hasRecurring && (
-          <div className="paymeBasketRecurringNote">Includes recurring subscription item(s)</div>
-        )}
       </div>
 
-      <button
-        type="button"
-        className="paymeBasketCheckout"
-        disabled={items.every((i) => i.qty === 0)}
-        onClick={proceed}
-      >
-        Proceed to checkout
-      </button>
+      {/* Summary */}
+      <div className="paymeSummaryCard">
+        <div className="paymeSectionTitle">Summary</div>
+        <div className="paymeSummaryRow">
+          <span>Setup subtotal</span>
+          <span>${totals.setupSubtotal.toFixed(2)}</span>
+        </div>
+        {totals.hasRecurring && (
+          <div className="paymeSummaryRow recurring">
+            <span>Monthly recurring</span>
+            <span>${totals.monthlyRecurring.toFixed(2)} / mo</span>
+          </div>
+        )}
+        <div className="paymeSummaryRow discount">
+          <span>Discount</span>
+          <span>- ${totals.discount.toFixed(2)}</span>
+        </div>
+        <div className="paymeSummaryRow grand">
+          <span>Total due today</span>
+          <span>${totals.totalDue.toFixed(2)}</span>
+        </div>
+        {totals.hasRecurring && (
+          <div className="paymeSummaryThen">
+            Then ${totals.monthlyRecurring.toFixed(2)} / month
+          </div>
+        )}
 
-      {confirmed && <div className="paymeBasketConfirmed">{confirmed}</div>}
+        {/* Coupon */}
+        <div className="paymeCouponRow">
+          <input
+            type="text"
+            placeholder="Enter code"
+            value={couponCode}
+            onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+          />
+          <button type="button" onClick={applyCoupon}>Apply</button>
+        </div>
+        {couponMsg && (
+          <div className={"paymeCouponMsg" + (applied ? " ok" : "")}>{couponMsg}</div>
+        )}
 
-      <div className="paymeBasketFooter">Powered by PayMe</div>
+        {/* Promo banner */}
+        <div className="paymePromoBanner">
+          <div>🚀 <b>Launch Party — 30% OFF</b> (LAUNCH30)</div>
+          <div>🔥 Extra 10% OFF with USDC on Everything</div>
+        </div>
+
+        {/* Method selector */}
+        <div className="paymeMethodsGrid">
+          <button
+            type="button"
+            className={"paymeMethod" + (method === "apple" ? " active" : "")}
+            onClick={() => setMethod("apple")}
+          >
+            <span></span> Apple Pay
+          </button>
+          <button
+            type="button"
+            className={"paymeMethod" + (method === "google" ? " active" : "")}
+            onClick={() => setMethod("google")}
+          >
+            <span>G</span> Google Pay
+          </button>
+          <button
+            type="button"
+            className={"paymeMethod" + (method === "card" ? " active" : "")}
+            onClick={() => setMethod("card")}
+          >
+            <span>💳</span> Card
+          </button>
+          <button
+            type="button"
+            className={"paymeMethod" + (method === "usdc" ? " active" : "")}
+            onClick={() => setMethod("usdc")}
+          >
+            <span>💲</span> USDC
+          </button>
+        </div>
+
+        <button
+          type="button"
+          className="paymePayBtn"
+          disabled={!items.length}
+          onClick={pay}
+        >
+          {payBtnLabel}
+        </button>
+
+        {confirmed && <div className="paymeCheckoutConfirmed">{confirmed}</div>}
+
+        <div className="paymePoweredBy">Powered by PayMe</div>
+      </div>
+
+      {showUsdcHelp && (
+        <div className="paymeUsdcModalBackdrop" onClick={() => setShowUsdcHelp(false)}>
+          <div className="paymeUsdcModal" onClick={(e) => e.stopPropagation()}>
+            <div className="paymeUsdcModalHead">
+              <span className="paymeUsdcDot" style={{ width: 22, height: 22 }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="#3B82F6">
+                  <circle cx="12" cy="12" r="10" fillOpacity=".12" />
+                  <path d="M12 7v10M8 10h8M8 14h8" stroke="#3B82F6" strokeWidth="1.5" fill="none" />
+                </svg>
+              </span>
+              <span>USDC payments</span>
+              <button type="button" className="paymeUsdcModalClose" onClick={() => setShowUsdcHelp(false)} aria-label="Close">×</button>
+            </div>
+            <ul className="paymeUsdcList">
+              <li>💵 <b>USDC</b> is the premier stablecoin — always worth <b>$1 USD</b>.</li>
+              <li>✅ Easy to use once your wallet is connected.</li>
+              <li>Select <b>USDC</b> as your payment method.</li>
+              <li>Click <b>Pay with USDC</b> to connect your wallet.</li>
+              <li>USDC on <b>BASE network only</b>. <span className="muted">(keeps it ez)</span></li>
+              <li>The pay button is <b>locked if not on BASE</b>. <span className="muted">(keeps it safe)</span></li>
+              <li>📱 Mobile users must use the <b>browser inside your web3 wallet</b>.</li>
+              <li>🤚 Mobile web3 wallets will <b>not connect from outside browsers</b>.</li>
+            </ul>
+            <button type="button" className="paymePayBtn" onClick={() => setShowUsdcHelp(false)}>
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

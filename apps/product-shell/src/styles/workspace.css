@@ -216,147 +216,257 @@
 .paymeSidePanelBody .card { height: 100%; border-radius: 0; border: none; }
 
 
-/* Shell-side Basket (PayMe) */
-.paymeBasket {
+/* Shell-side PayMe Checkout (replaces old Basket layout) */
+.paymeCheckout {
   padding: 18px 18px 24px;
   color: #1E293B;
   background: #fff;
   min-height: 100%;
+  display: grid;
+  gap: 14px;
 }
-.paymeBasketHead { margin-bottom: 14px; }
-.paymeBasketTitle {
-  margin: 0 0 2px;
-  font-size: 22px;
+
+.paymeCheckoutHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.paymeCheckoutTitle {
   font-weight: 900;
+  font-size: 22px;
   color: #1D4ED8;
 }
-.paymeBasketSub {
-  margin: 0;
-  font-size: 13px;
-  color: #64748B;
+.paymeCheckoutDrop {
+  width: 28px; height: 28px;
+  display: grid; place-items: center;
+  border-radius: 999px;
+  background: rgba(59,130,246,.1);
 }
-.paymeBasketEmpty {
-  padding: 18px 12px;
-  text-align: center;
-  color: #64748B;
-  background: #F4F7FC;
-  border-radius: 12px;
-}
-.paymeBasketList { display: grid; gap: 2px; margin-top: 6px; }
-.paymeBasketRow {
-  display: grid;
-  grid-template-columns: 1fr auto auto auto;
-  gap: 10px;
-  align-items: center;
-  padding: 12px 0;
-  border-bottom: 1px solid #EEF1F5;
-}
-.paymeBasketRowName { font-weight: 800; font-size: 14px; }
-.paymeBasketRecurring { font-size: 11px; color: #2f7df6; font-weight: 500; }
-.paymeBasketRowDesc { font-size: 12px; color: #5f6c7b; margin-top: 2px; }
-.paymeBasketQty { display: flex; align-items: center; gap: 6px; }
-.paymeBasketQty button {
-  width: 28px; height: 28px; border-radius: 8px;
-  border: 1px solid #D5DCE5; background: #F9FAFB;
-  font-size: 15px; cursor: pointer; color: #1E293B;
-}
-.paymeBasketQty span { min-width: 22px; text-align: center; font-weight: 700; }
-.paymeBasketPrice { min-width: 64px; text-align: right; font-weight: 700; font-size: 14px; }
-.paymeBasketRemove {
-  background: none; border: none; color: #9CA3AF;
-  cursor: pointer; font-size: 18px; padding: 0 4px;
-}
-.paymeBasketRemove:hover { color: #ef4444; }
 
-.paymeBasketSection { margin-top: 16px; }
-.paymeBasketSectionLabel {
-  display: block;
-  font-weight: 700;
-  font-size: 13px;
-  color: #475569;
-  margin-bottom: 6px;
+.paymeReviewCard,
+.paymeSummaryCard {
+  border: 1px solid rgba(59,130,246,.18);
+  border-radius: 16px;
+  padding: 14px 14px 16px;
+  background: #F8FAFC;
 }
-.paymeBasketSubs { display: flex; flex-wrap: wrap; gap: 8px; }
-.paymeBasketSubBtn {
-  padding: 8px 12px;
-  border-radius: 10px;
-  border: 1px solid #D5DCE5;
-  background: #EFF6FF;
-  color: #2f7df6;
+
+.paymeReviewHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.paymeSectionTitle {
+  font-weight: 800;
+  color: #1D4ED8;
+  font-size: 15px;
+}
+
+.paymeUsdcHelp {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid rgba(59,130,246,.28);
+  color: #1D4ED8;
+  font-weight: 800;
   font-size: 12px;
-  font-weight: 700;
   cursor: pointer;
 }
-.paymeBasketSubBtn:disabled { background: #F3F4F6; color: #9CA3AF; cursor: default; }
+.paymeUsdcHelp:hover { background: rgba(59,130,246,.05); }
+.paymeUsdcDot {
+  width: 18px; height: 18px;
+  display: inline-grid; place-items: center;
+  border-radius: 999px;
+}
 
-.paymeBasketCouponRow { display: flex; gap: 8px; }
-.paymeBasketCouponRow input {
+.paymeReviewEmpty {
+  padding: 18px 8px;
+  text-align: center;
+  color: #64748B;
+  font-size: 13px;
+}
+
+.paymeReviewList { display: grid; gap: 8px; }
+.paymeReviewItem {
+  padding: 10px 12px;
+  border: 1px solid rgba(59,130,246,.12);
+  border-radius: 12px;
+  background: #fff;
+  display: grid;
+  gap: 4px;
+}
+.paymeReviewTopRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.paymeReviewItemHead {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.paymeReviewItemName {
+  font-weight: 800;
+  font-size: 14px;
+  color: #1E293B;
+}
+.paymeReviewItemSku {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  color: #64748B;
+  text-transform: uppercase;
+}
+.paymeReviewRemove {
+  background: none;
+  border: none;
+  color: #9CA3AF;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0 2px;
+}
+.paymeReviewRemove:hover { color: #ef4444; }
+
+.paymeReviewRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: #475569;
+}
+.paymeReviewRow.recurring {
+  color: #1D4ED8;
+  font-weight: 800;
+}
+
+.paymeReviewQty {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+.paymeReviewQty button {
+  width: 24px; height: 24px; border-radius: 6px;
+  border: 1px solid #D5DCE5; background: #F9FAFB;
+  font-size: 13px; cursor: pointer; color: #1E293B;
+}
+.paymeReviewQty span { min-width: 20px; text-align: center; font-weight: 700; font-size: 13px; }
+
+/* Summary */
+.paymeSummaryCard { display: grid; gap: 8px; }
+.paymeSummaryRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  color: #475569;
+}
+.paymeSummaryRow.recurring { color: #1D4ED8; font-weight: 800; }
+.paymeSummaryRow.discount { color: #64748B; }
+.paymeSummaryRow.grand {
+  padding-top: 8px;
+  border-top: 1px solid rgba(59,130,246,.15);
+  font-size: 17px;
+  font-weight: 900;
+  color: #1E293B;
+}
+.paymeSummaryThen {
+  text-align: right;
+  font-size: 12px;
+  color: #64748B;
+}
+
+/* Coupon */
+.paymeCouponRow {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+.paymeCouponRow input {
   flex: 1;
   padding: 10px 12px;
   border: 1px solid #D5DCE5;
   border-radius: 12px;
   background: #fff;
   color: #1E293B;
-}
-.paymeBasketCouponRow input:focus {
   outline: none;
+}
+.paymeCouponRow input:focus {
   border-color: #3B82F6;
   box-shadow: 0 0 0 2px rgba(59,130,246,.12);
 }
-.paymeBasketApply {
-  padding: 10px 14px;
+.paymeCouponRow button {
+  padding: 10px 16px;
   border-radius: 12px;
   border: 0;
   background: #3B82F6;
   color: #fff;
-  font-weight: 700;
+  font-weight: 800;
   cursor: pointer;
 }
-.paymeBasketApply:hover { background: #2563EB; }
-.paymeBasketCouponMsg { margin-top: 6px; font-size: 12px; color: #6B7280; }
-.paymeBasketCouponMsg.ok { color: #166534; }
+.paymeCouponRow button:hover { background: #2563EB; }
+.paymeCouponMsg { font-size: 12px; color: #6B7280; }
+.paymeCouponMsg.ok { color: #166534; }
 
-.paymeBasketTotals {
-  margin-top: 18px;
-  padding-top: 14px;
-  border-top: 1px solid #E5EBF2;
+/* Promo */
+.paymePromoBanner {
+  background: #FFF7ED;
+  border: 1px solid #FED7AA;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #9A3412;
   display: grid;
+  gap: 4px;
+}
+
+/* Method selector */
+.paymeMethodsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.paymeMethod {
+  padding: 12px 10px;
+  border-radius: 12px;
+  border: 1px solid #D5DCE5;
+  background: #fff;
+  color: #1E293B;
+  font-weight: 800;
+  font-size: 13px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   gap: 6px;
 }
-.paymeBasketTotalRow {
-  display: flex;
-  justify-content: space-between;
-  font-size: 14px;
-  color: #475569;
-}
-.paymeBasketTotalRow.discount { color: #166534; }
-.paymeBasketTotalRow.grand {
-  margin-top: 6px;
-  padding-top: 10px;
-  border-top: 1px solid #E5EBF2;
-  font-weight: 800;
-  font-size: 18px;
-  color: #1E293B;
-}
-.paymeBasketRecurringNote { font-size: 12px; color: #2f7df6; }
+.paymeMethod:hover { border-color: rgba(59,130,246,.30); }
+.paymeMethod.active { border-color: #3B82F6; box-shadow: 0 0 0 1px #3B82F6 inset; color: #1D4ED8; }
+.paymeMethod span { font-size: 15px; }
 
-.paymeBasketCheckout {
+.paymePayBtn {
   width: 100%;
-  margin-top: 16px;
   padding: 14px 18px;
   border-radius: 14px;
   border: 0;
-  background: #2f7df6;
+  background: #3B82F6;
   color: #fff;
   font-weight: 800;
   font-size: 15px;
   cursor: pointer;
 }
-.paymeBasketCheckout:hover:not(:disabled) { background: #1D4ED8; }
-.paymeBasketCheckout:disabled { opacity: .5; cursor: default; }
+.paymePayBtn:hover:not(:disabled) { background: #2563EB; }
+.paymePayBtn:disabled { opacity: .5; cursor: default; }
 
-.paymeBasketConfirmed {
-  margin-top: 12px;
+.paymeCheckoutConfirmed {
   padding: 10px 12px;
   background: #ECFDF5;
   border: 1px solid #A7F3D0;
@@ -364,15 +474,61 @@
   border-radius: 12px;
   font-size: 13px;
   font-weight: 700;
+  text-align: center;
 }
 
-.paymeBasketFooter {
-  margin-top: 18px;
+.paymePoweredBy {
   text-align: center;
   font-size: 12px;
   color: #2f7df6;
   font-weight: 700;
 }
+
+/* USDC help modal */
+.paymeUsdcModalBackdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, .65);
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  border-radius: 18px;
+  z-index: 4;
+}
+.paymeUsdcModal {
+  width: min(360px, 100%);
+  background: #fff;
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 14px 40px rgba(0,0,0,.25);
+  display: grid;
+  gap: 12px;
+}
+.paymeUsdcModalHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 900;
+  color: #1D4ED8;
+  font-size: 15px;
+}
+.paymeUsdcModalHead .paymeUsdcModalClose {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: #9CA3AF;
+  font-size: 18px;
+  cursor: pointer;
+}
+.paymeUsdcList {
+  margin: 0;
+  padding-left: 16px;
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  color: #1E293B;
+}
+.paymeUsdcList .muted { color: #64748B; font-size: 12px; }
 
 
 /* PayMe sub-panel layout (Coupons / Recurring / Settings) */
@@ -578,6 +734,9 @@
   background: #fff;
   display: grid;
   gap: 10px;
+  /* Height locked to tallest (Sign Up) layout so the modal doesn't resize. */
+  min-height: 340px;
+  align-content: start;
 }
 
 .authModalLabel {
