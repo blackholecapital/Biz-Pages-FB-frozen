@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npm run build:engage && vite build",
+    "build": "npm run build:engage && npm run build:shell",
+    "build:shell": "vite build",
     "preview": "vite preview",
     "build:engage": "npm --prefix ../modules/engage install --progress=false && npm --prefix ../modules/engage run build",
     "test": "node --test tests/microfrontend/*.test.mjs",
