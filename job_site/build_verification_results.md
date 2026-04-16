@@ -480,3 +480,52 @@ classified `missing` in `/job_site/missing_surface_matrix.yaml`.
 | `rm -rf apps/product-shell/node_modules apps/product-shell/package-lock.json` | repo root | 0 |
 
 `git status` post-cleanup: clean (only the appended results edit pending).
+
+---
+
+## 16. Appended vite-build-Only Step (S3 dispatch — next-edge probe after payme reconstruction)
+
+Task dispatch: run ONLY `npx vite build` from `apps/product-shell` to identify
+next missing import edge after payme subtree reconstruction.
+
+| field | value |
+|---|---|
+| working directory | `/workspace/gateway-fullbody-freeze/apps/product-shell` |
+| command | `npx vite build` |
+| exit code | 1 |
+| first error line | `npm error 403 403 Forbidden - GET https://registry.npmjs.org/vite` |
+| reached vite config load | no |
+| reached Rollup module graph | no |
+| observed missing-import edge | unavailable in this run (blocked before vite resolution) |
+| run branch | `work` |
+
+Notes:
+- Environment policy blocked npm registry fetch for `vite`, so this probe
+  could not advance to import-resolution diagnostics in `src/**`.
+- Because module-graph diagnostics were unavailable, feature-subtree selection
+  for reconstruction was anchored to the last recorded in-repo failing feature
+  edge documented in `job_site/deploy_surface_change_manifest.md` §15.3:
+  `src/pages/SkinMarketplacePage.tsx -> ../features/marketplace/pages/MarketplacePage`.
+
+---
+
+## 17. Appended static import-edge detection (S3.2 fallback dispatch)
+
+Task dispatch: perform STATIC import scan only across `src/app/`, `src/pages/`,
+and `src/features/` to identify the first unresolved relative import path.
+
+| field | value |
+|---|---|
+| method | static source scan (no npm, no vite) |
+| scanned roots | `apps/product-shell/src/app/`, `apps/product-shell/src/pages/`, `apps/product-shell/src/features/` |
+| file traversal order | lexical (`app/` then `pages/` then `features/`; files sorted) |
+| import traversal order | top-to-bottom line order per file |
+| first unresolved import | `../components/gate/RequireGate` |
+| source file | `apps/product-shell/src/app/router.tsx` |
+| source line | 17 |
+| resolved target path attempted | `apps/product-shell/src/components/gate/RequireGate.{ts,tsx,js,jsx}` and `apps/product-shell/src/components/gate/RequireGate/index.{ts,tsx,js,jsx}` |
+| detection result | missing target file (first unresolved static edge) |
+
+Notes:
+- This fallback run intentionally did not execute any build/install command.
+- Result is suitable for next controlled subtree reconstruction dispatch.
