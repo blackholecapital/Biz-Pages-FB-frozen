@@ -1078,3 +1078,83 @@ Still deferred and intentionally untouched by this pass:
 | branch | work |
 | commit_hash | (recorded post-commit; see git log) |
 | pushed_to | (push attempted post-commit) |
+
+## 17. Append — Marketplace Feature Subtree Reconstruction Pass (S3 task dispatch)
+
+job_id: RB-INT-CHASSIS-002
+stage: S3
+pass: product-shell marketplace feature reconstruction (`src/features/marketplace/` full subtree for next feature edge)
+worker: worker_a
+branch: work
+
+### 17.1 Goal and scope lock
+
+Goal: reconstruct the full `src/features/marketplace/` subtree needed to close
+feature-level marketplace imports in one pass (`state/`, `components/`,
+`pages/`) without expanding into other feature trees.
+
+Created in this pass:
+
+- `apps/product-shell/src/features/marketplace/pages/MarketplacePage.tsx`
+- `apps/product-shell/src/features/marketplace/components/BasketCheckoutCard.tsx`
+- `apps/product-shell/src/features/marketplace/components/CartPanel.tsx`
+- `apps/product-shell/src/features/marketplace/components/CheckoutPanel.tsx`
+- `apps/product-shell/src/features/marketplace/components/PayMeEmbedPlaceholder.tsx`
+- `apps/product-shell/src/features/marketplace/components/ProductCard.tsx`
+- `apps/product-shell/src/features/marketplace/components/ProductGrid.tsx`
+- `apps/product-shell/src/features/marketplace/components/UsdcCheckoutCard.tsx`
+
+Updated in this pass:
+
+- `apps/product-shell/src/features/marketplace/state/cartStore.tsx`
+
+Previously existing and retained:
+
+- `apps/product-shell/src/features/marketplace/state/mockCatalog.ts`
+
+No files outside `apps/product-shell/src/features/marketplace/` were changed for
+feature code.
+
+### 17.2 Direct dependency closure
+
+Marketplace import chain is closed inside feature boundary:
+
+- `pages/MarketplacePage` -> `components/ProductGrid`, `components/CartPanel`,
+  `components/CheckoutPanel`
+- `components/ProductGrid` -> `components/ProductCard`, `state/cartStore`
+- `components/CartPanel` -> `components/BasketCheckoutCard`, `state/cartStore`
+- `components/CheckoutPanel` -> `components/UsdcCheckoutCard`,
+  `components/PayMeEmbedPlaceholder`, `state/cartStore`
+- `state/cartStore` -> `state/mockCatalog`
+
+No marketplace-local `hooks/` subtree is directly imported by this chain, so no
+`features/marketplace/hooks/*` files were required to satisfy direct imports.
+
+### 17.3 Verification note
+
+Per task constraint, the probe command run to discover next edge was ONLY:
+
+- `npx vite build` from `apps/product-shell`
+
+This command was blocked by environment npm registry policy (`403 Forbidden`)
+before vite config/module graph stages. The result is appended to
+`job_site/build_verification_results.md` §16.
+
+### 17.4 Out-of-scope handoff
+
+Still deferred and intentionally untouched by this pass:
+
+- `apps/product-shell/src/features/referrals/*`
+- `apps/product-shell/src/features/engage/*`
+- non-feature surfaces such as `src/components/integrations/ModuleFrame.tsx`
+
+### 17.5 Repo mirror / commit / push evidence
+
+| field | value |
+|---|---|
+| repo_mirror | yes — writes made under `/workspace/gateway-fullbody-freeze/apps/product-shell/src/features/marketplace/` and manifest appends |
+| commit_required | yes |
+| push_required | yes |
+| branch | work |
+| commit_hash | (recorded post-commit; see git log) |
+| pushed_to | (push attempted post-commit) |
