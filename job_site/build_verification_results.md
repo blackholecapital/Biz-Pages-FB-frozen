@@ -625,3 +625,19 @@ first unresolved import path (or confirm none).
 Notes:
 - This final scan intentionally did not execute any build/install command.
 - Scan stopped at the first unresolved import as dispatched.
+
+---
+
+## 22. Appended isolated vite build result (S4.2 dispatch — bypass engage build step)
+
+Task dispatch: from `apps/product-shell`, run ONLY `npx vite build` (do not run `npm run build`).
+
+| field | value |
+|---|---|
+| working directory | `/workspace/gateway-fullbody-freeze/apps/product-shell` |
+| command | `npx vite build` |
+| exit code | 0 |
+| result | success |
+| first error line | (none) |
+| key output | `✓ built in 2.15s`; emitted `dist/index.html`, `dist/assets/index-BZUyxO74.css`, `dist/assets/index-C2Tfe8pT.js` |
+
