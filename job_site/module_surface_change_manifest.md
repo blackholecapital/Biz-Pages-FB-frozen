@@ -541,3 +541,37 @@ All remain classified `missing` in `/job_site/missing_surface_matrix.yaml` §mod
 - No chassis package import, no cross-module import, no workspace configuration, and no path rewrite was introduced.
 - No existing declaration in `/job_site/full_parity_fragment_allowlist.md`, `/job_site/full_parity_target_path_manifest.yaml`, or `/job_site/missing_surface_matrix.yaml` was modified. The allowlist deviation at §13.2 is a one-file exception authorized by the S3 re-dispatch task header, not a document change.
 - PATCH-RB002-014 is PARTIAL, not CLOSED. Full closure requires a subsequent S3 worker_b full-reconstruction pass.
+
+## 14. modules/payme Export Alignment for MemberBillingPanel (S3 worker_b dispatch)
+
+job_id: RB-INT-CHASSIS-002  
+stage: S3  
+worker: worker_b  
+authority: task dispatch "Align modules/payme with feature usage by ensuring exports used by MemberBillingPanel are resolvable"
+
+### 14.1 Scope lock
+
+Touched only `apps/modules/payme/**` plus this manifest append. No changes in other modules.
+
+### 14.2 Alignment actions
+
+- Added missing module entry scaffolding required for resolvable PayMe package/runtime entrypoints:
+  - `apps/modules/payme/vite.config.js`
+  - `apps/modules/payme/index.html`
+  - `apps/modules/payme/src/main.jsx`
+  - `apps/modules/payme/src/App.jsx`
+  - `apps/modules/payme/src/styles/global.css`
+- Added explicit service surface used by PayMe feature flows:
+  - `apps/modules/payme/src/services/usdcTransfer.js`
+  - exports: `transferUsdc`, `formatUsdc`, `toUsdcAtomicUnits`, `fromUsdcAtomicUnits`
+- Updated `apps/modules/payme/src/index.jsx` to export the module app surface plus the USDC service exports.
+- Updated `apps/modules/payme/package.json` to include `main` and `exports` mappings so imports from package root and `./services/usdcTransfer` resolve.
+
+### 14.3 Verification
+
+- `npm --prefix apps/modules/payme install --no-audit --no-fund` → FAIL (registry access blocked: npm 403)
+- `npm --prefix apps/modules/payme run build` → FAIL in current environment (`vite: not found`) because dependencies could not be installed
+
+### 14.4 Notes
+
+This is an alignment patch, not full baseline subtree reconstruction. It keeps the change minimal and focused on entrypoints/exports required for downstream `MemberBillingPanel` integration.
