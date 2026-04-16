@@ -954,3 +954,423 @@ this pass is not constrained by that allowlist.
 - All 11 page modules' `../components/layout/PageShell` direct-import edges are now resolvable; the `src/pages/* → ../components/layout/PageShell` failing edge is closed.
 - The next failing edge (§14.8) is `src/pages/SkinMarketplacePage.tsx → ../features/marketplace/state/cartStore`, outside this pass's scope.
 - Because no baseline archive is available on the attached file system, the file is a minimal chassis-native stub (§14.7) and NOT a byte-for-byte baseline copy. This divergence from §11/§12 reconstruction method is noted here (same as §13.12) for Foreman B adjudication.
+
+## 15. Append — Marketplace State Reconstruction Pass (S3 task dispatch)
+
+job_id: RB-INT-CHASSIS-002
+stage: S3
+pass: product-shell marketplace state reconstruction (`src/features/marketplace/state/` only; resolve SkinMarketplacePage cartStore import)
+worker: worker_a
+branch: claude/rebuild-product-shell-KIQNp
+
+### 15.1 Goal and scope lock
+
+Goal: resolve `src/pages/SkinMarketplacePage.tsx` import of
+`../features/marketplace/state/cartStore` by reconstructing only the
+required `src/features/marketplace/state/` subtree.
+
+Created exactly:
+
+- `apps/product-shell/src/features/marketplace/state/cartStore.tsx`
+- `apps/product-shell/src/features/marketplace/state/mockCatalog.ts`
+
+No other `src/features/marketplace/*` paths were created or modified.
+
+### 15.2 Implementation summary
+
+- Added `mockCatalog.ts` with a typed `CatalogProduct` model and a minimal
+  catalog fixture used by cart state.
+- Added `cartStore.tsx` with:
+  - `CartProvider` context wrapper consumed by `SkinMarketplacePage.tsx`
+  - cart state (`lines`, `itemCount`) and actions (`addToCart`,
+    `removeFromCart`, `clearCart`)
+  - `useCartStore()` helper hook for downstream marketplace components.
+- `cartStore.tsx` directly imports only `./mockCatalog`, satisfying the
+  dispatch requirement to include direct sibling dependencies.
+
+### 15.3 Verification
+
+From `apps/product-shell`:
+
+- `npx vite build`
+  - previous edge (`../features/marketplace/state/cartStore`) is resolved.
+  - first unresolved edge advances to
+    `../features/marketplace/pages/MarketplacePage` from
+    `src/pages/SkinMarketplacePage.tsx`, which is outside this task scope.
+
+### 15.4 Out-of-scope handoff
+
+Still missing and intentionally deferred by this pass:
+
+- `apps/product-shell/src/features/marketplace/pages/MarketplacePage.tsx`
+- `apps/product-shell/src/features/marketplace/components/*`
+- any non-marketplace-feature subtree (`hooks/`, `utils/`, other features)
+
+### 15.5 Repo mirror / commit / push evidence
+
+| field | value |
+|---|---|
+| repo_mirror | yes — writes made under `/home/user/gateway-fullbody-freeze/apps/product-shell/src/features/marketplace/state/` and manifest append |
+| commit_required | yes |
+| push_required | yes |
+| branch | claude/rebuild-product-shell-KIQNp |
+| commit_hash | (recorded post-commit; see git log) |
+| pushed_to | origin/claude/rebuild-product-shell-KIQNp |
+
+## 16. Append — PayMe Feature Subtree Reconstruction Pass (S3 task dispatch)
+
+job_id: RB-INT-CHASSIS-002
+stage: S3
+pass: product-shell payme feature reconstruction (`src/features/payme/` only; resolve AccessTier1Page MemberBillingPanel import)
+worker: worker_a
+branch: work
+
+### 16.1 Goal and scope lock
+
+Goal: resolve `src/pages/AccessTier1Page.tsx` import of
+`../features/payme/MemberBillingPanel` by reconstructing only the required
+`src/features/payme/` subtree.
+
+Created exactly:
+
+- `apps/product-shell/src/features/payme/MemberBillingPanel.tsx`
+- `apps/product-shell/src/features/payme/PayMeAdminPanel.tsx`
+- `apps/product-shell/src/features/payme/PayMeAdminCard.tsx`
+
+No files outside `apps/product-shell/src/features/payme/` were added for
+feature code in this pass.
+
+### 16.2 Dependency closure inside payme subtree
+
+- `MemberBillingPanel.tsx` imports `./PayMeAdminPanel`.
+- `PayMeAdminPanel.tsx` imports `./PayMeAdminCard`.
+- No `state/`, `hooks/`, or nested `components/` paths are directly imported
+  by this reconstructed chain, so no additional payme-scope files were
+  required to close direct sibling dependencies for this task.
+
+### 16.3 Verification
+
+From `apps/product-shell`:
+
+- `npm install --no-audit --no-fund`
+- `npx vite build`
+
+Result: the `AccessTier1Page.tsx -> ../features/payme/MemberBillingPanel`
+edge is resolved. Build now fails later in the graph at
+`src/pages/EngagePage.tsx -> ../components/integrations/ModuleFrame`
+(outside this task scope).
+
+### 16.4 Out-of-scope handoff
+
+Still deferred and intentionally untouched by this pass:
+
+- any non-payme feature subtree (`features/marketplace/pages`,
+  `features/referrals`, `features/engage`)
+- any `src/components/*` surfaces outside payme feature boundary
+
+### 16.5 Repo mirror / commit / push evidence
+
+| field | value |
+|---|---|
+| repo_mirror | yes — writes made under `/workspace/gateway-fullbody-freeze/apps/product-shell/src/features/payme/` and manifest append |
+| commit_required | yes |
+| push_required | yes |
+| branch | work |
+| commit_hash | (recorded post-commit; see git log) |
+| pushed_to | (push attempted post-commit) |
+
+## 17. Append — Marketplace Feature Subtree Reconstruction Pass (S3 task dispatch)
+
+job_id: RB-INT-CHASSIS-002
+stage: S3
+pass: product-shell marketplace feature reconstruction (`src/features/marketplace/` full subtree for next feature edge)
+worker: worker_a
+branch: work
+
+### 17.1 Goal and scope lock
+
+Goal: reconstruct the full `src/features/marketplace/` subtree needed to close
+feature-level marketplace imports in one pass (`state/`, `components/`,
+`pages/`) without expanding into other feature trees.
+
+Created in this pass:
+
+- `apps/product-shell/src/features/marketplace/pages/MarketplacePage.tsx`
+- `apps/product-shell/src/features/marketplace/components/BasketCheckoutCard.tsx`
+- `apps/product-shell/src/features/marketplace/components/CartPanel.tsx`
+- `apps/product-shell/src/features/marketplace/components/CheckoutPanel.tsx`
+- `apps/product-shell/src/features/marketplace/components/PayMeEmbedPlaceholder.tsx`
+- `apps/product-shell/src/features/marketplace/components/ProductCard.tsx`
+- `apps/product-shell/src/features/marketplace/components/ProductGrid.tsx`
+- `apps/product-shell/src/features/marketplace/components/UsdcCheckoutCard.tsx`
+
+Updated in this pass:
+
+- `apps/product-shell/src/features/marketplace/state/cartStore.tsx`
+
+Previously existing and retained:
+
+- `apps/product-shell/src/features/marketplace/state/mockCatalog.ts`
+
+No files outside `apps/product-shell/src/features/marketplace/` were changed for
+feature code.
+
+### 17.2 Direct dependency closure
+
+Marketplace import chain is closed inside feature boundary:
+
+- `pages/MarketplacePage` -> `components/ProductGrid`, `components/CartPanel`,
+  `components/CheckoutPanel`
+- `components/ProductGrid` -> `components/ProductCard`, `state/cartStore`
+- `components/CartPanel` -> `components/BasketCheckoutCard`, `state/cartStore`
+- `components/CheckoutPanel` -> `components/UsdcCheckoutCard`,
+  `components/PayMeEmbedPlaceholder`, `state/cartStore`
+- `state/cartStore` -> `state/mockCatalog`
+
+No marketplace-local `hooks/` subtree is directly imported by this chain, so no
+`features/marketplace/hooks/*` files were required to satisfy direct imports.
+
+### 17.3 Verification note
+
+Per task constraint, the probe command run to discover next edge was ONLY:
+
+- `npx vite build` from `apps/product-shell`
+
+This command was blocked by environment npm registry policy (`403 Forbidden`)
+before vite config/module graph stages. The result is appended to
+`job_site/build_verification_results.md` §16.
+
+### 17.4 Out-of-scope handoff
+
+Still deferred and intentionally untouched by this pass:
+
+- `apps/product-shell/src/features/referrals/*`
+- `apps/product-shell/src/features/engage/*`
+- non-feature surfaces such as `src/components/integrations/ModuleFrame.tsx`
+
+### 17.5 Repo mirror / commit / push evidence
+
+| field | value |
+|---|---|
+| repo_mirror | yes — writes made under `/workspace/gateway-fullbody-freeze/apps/product-shell/src/features/marketplace/` and manifest appends |
+| commit_required | yes |
+| push_required | yes |
+| branch | work |
+| commit_hash | (recorded post-commit; see git log) |
+| pushed_to | (push attempted post-commit) |
+
+## 18. Append — Gate Components Subtree Reconstruction Pass (S3.3 task dispatch)
+
+job_id: RB-INT-CHASSIS-002
+stage: S3.3
+pass: product-shell gate subtree reconstruction (`src/components/gate/` only; resolve router RequireGate import edge)
+worker: worker_a
+branch: work
+
+### 18.1 Goal and scope lock
+
+Goal: reconstruct full `src/components/gate/` subtree needed to satisfy
+`RequireGate` import edge detected from `src/app/router.tsx` static scan.
+
+Created exactly:
+
+- `apps/product-shell/src/components/gate/RequireGate.tsx`
+- `apps/product-shell/src/components/gate/LoginModal.tsx`
+- `apps/product-shell/src/components/gate/GateStatusPill.tsx`
+- `apps/product-shell/src/components/gate/WalletConnectButton.tsx`
+- `apps/product-shell/src/components/gate/SignMessageButton.tsx`
+- `apps/product-shell/src/components/gate/DemoBypassButton.tsx`
+
+No files outside `apps/product-shell/src/components/gate/` were created for this
+subtree reconstruction pass.
+
+### 18.2 Direct dependency closure inside gate subtree
+
+- `RequireGate.tsx` imports all sibling gate modules listed above.
+- Gate sibling modules import only React types/runtime and local props;
+  no additional gate-local context/hooks/util files were required to close
+  direct subtree imports.
+
+### 18.3 Verification
+
+Static import presence check confirms all `RequireGate.tsx` local sibling imports
+resolve to files present under `apps/product-shell/src/components/gate/`.
+
+### 18.4 Out-of-scope handoff
+
+Still deferred and intentionally untouched by this pass:
+
+- uncommenting/re-enabling gate in `src/app/router.tsx`
+- non-gate component subtrees and non-component surfaces
+
+### 18.5 Repo mirror / commit / push evidence
+
+| field | value |
+|---|---|
+| repo_mirror | yes — writes made under `/workspace/gateway-fullbody-freeze/apps/product-shell/src/components/gate/` and manifest append |
+| commit_required | yes |
+| push_required | yes |
+| branch | work |
+| commit_hash | (recorded post-commit; see git log) |
+| pushed_to | (push attempted post-commit) |
+
+## 19. Append — Utils Subtree Reconstruction Pass (S3.5 task dispatch)
+
+job_id: RB-INT-CHASSIS-002
+stage: S3.5
+pass: product-shell utils subtree reconstruction (`src/utils/` only; resolve AccessTier2Page usdc import edge)
+worker: worker_a
+branch: work
+
+### 19.1 Goal and scope lock
+
+Goal: reconstruct full `src/utils/` subtree required to satisfy
+`src/pages/AccessTier2Page.tsx -> ../utils/usdc` static import edge.
+
+Created in this pass:
+
+- `apps/product-shell/src/utils/usdc.ts`
+- `apps/product-shell/src/utils/assetCodeResolver.ts`
+- `apps/product-shell/src/utils/resolveStaticAsset.ts`
+- `apps/product-shell/src/utils/resolveWallpaper.ts`
+- `apps/product-shell/src/utils/tenantPageClient.ts`
+
+No files outside `apps/product-shell/src/utils/` were created for this pass.
+
+### 19.2 Direct dependency closure inside utils subtree
+
+- `resolveStaticAsset.ts` imports `./assetCodeResolver`.
+- `resolveWallpaper.ts` imports `./resolveStaticAsset`.
+- `usdc.ts` is self-contained and exports `sendUsdcOnBase` used by
+  `AccessTier2Page.tsx`.
+- No additional utils-local helper/formatter/constants modules are directly
+  required beyond the files created above.
+
+### 19.3 Verification
+
+Static import presence check confirms `../utils/usdc` from
+`src/pages/AccessTier2Page.tsx` resolves to
+`apps/product-shell/src/utils/usdc.ts`.
+
+### 19.4 Out-of-scope handoff
+
+Still deferred and intentionally untouched by this pass:
+
+- non-utils missing subtrees (`src/hooks/`, `src/integrations/`, `src/config/`, `src/contracts/`)
+- runtime wallet/provider integrations beyond mock-safe utils interfaces
+
+### 19.5 Repo mirror / commit / push evidence
+
+| field | value |
+|---|---|
+| repo_mirror | yes — writes made under `/workspace/gateway-fullbody-freeze/apps/product-shell/src/utils/` and manifest append |
+| commit_required | yes |
+| push_required | yes |
+| branch | work |
+| commit_hash | (recorded post-commit; see git log) |
+| pushed_to | (push attempted post-commit) |
+
+## 20. Append — Hooks Subtree Reconstruction Pass (S3.7 task dispatch)
+
+job_id: RB-INT-CHASSIS-002
+stage: S3.7
+pass: product-shell hooks subtree reconstruction (`src/hooks/` only; resolve AccessTier2Page usePublishedExclusiveTiles import edge)
+worker: worker_a
+branch: work
+
+### 20.1 Goal and scope lock
+
+Goal: reconstruct full `src/hooks/` subtree required to satisfy
+`src/pages/AccessTier2Page.tsx -> ../hooks/usePublishedExclusiveTiles` static
+import edge.
+
+Created in this pass:
+
+- `apps/product-shell/src/hooks/usePublishedExclusiveTiles.ts`
+- `apps/product-shell/src/hooks/useViewportMode.ts`
+
+No files outside `apps/product-shell/src/hooks/` were created for this pass.
+
+### 20.2 Direct dependency closure inside hooks subtree
+
+- `usePublishedExclusiveTiles.ts` imports runtime-only modules:
+  `../runtime/exclusiveTileHydration` and `../runtime/publishedClient`.
+- `usePublishedExclusiveTiles.ts` has no hooks-local sibling imports.
+- `useViewportMode.ts` is self-contained and requires no hooks-local siblings.
+
+### 20.3 Verification
+
+Static import presence check confirms `../hooks/usePublishedExclusiveTiles` from
+`src/pages/AccessTier2Page.tsx` resolves to
+`apps/product-shell/src/hooks/usePublishedExclusiveTiles.ts`.
+
+### 20.4 Out-of-scope handoff
+
+Still deferred and intentionally untouched by this pass:
+
+- non-hooks missing subtrees (`src/integrations/`, `src/config/`, `src/contracts/`)
+- runtime/API behavior validation requiring full build execution
+
+### 20.5 Repo mirror / commit / push evidence
+
+| field | value |
+|---|---|
+| repo_mirror | yes — writes made under `/workspace/gateway-fullbody-freeze/apps/product-shell/src/hooks/` and manifest append |
+| commit_required | yes |
+| push_required | yes |
+| branch | work |
+| commit_hash | (recorded post-commit; see git log) |
+| pushed_to | (push attempted post-commit) |
+
+## 21. Append — Admin Components Subtree Reconstruction Pass (S3.9 task dispatch)
+
+job_id: RB-INT-CHASSIS-002
+stage: S3.9
+pass: product-shell admin subtree reconstruction (`src/components/admin/` only; resolve AccessTier3Page AdminPanel import edge)
+worker: worker_a
+branch: work
+
+### 21.1 Goal and scope lock
+
+Goal: reconstruct full `src/components/admin/` subtree required to satisfy
+`src/pages/AccessTier3Page.tsx -> ../components/admin/AdminPanel` static
+import edge.
+
+Created in this pass:
+
+- `apps/product-shell/src/components/admin/AdminPanel.tsx`
+- `apps/product-shell/src/components/admin/AdminActionButton.tsx`
+- `apps/product-shell/src/components/admin/AdminStatusBlock.tsx`
+
+No files outside `apps/product-shell/src/components/admin/` were created for
+this pass.
+
+### 21.2 Direct dependency closure inside admin subtree
+
+- `AdminPanel.tsx` imports `./AdminActionButton` and `./AdminStatusBlock`.
+- `AdminActionButton.tsx` and `AdminStatusBlock.tsx` are self-contained and
+  require no additional admin-local sibling imports.
+
+### 21.3 Verification
+
+Static import presence check confirms `../components/admin/AdminPanel` from
+`src/pages/AccessTier3Page.tsx` resolves to
+`apps/product-shell/src/components/admin/AdminPanel.tsx`.
+
+### 21.4 Out-of-scope handoff
+
+Still deferred and intentionally untouched by this pass:
+
+- non-admin component gaps under `src/components/*`
+- non-component subtrees (`src/integrations/`, `src/config/`, `src/contracts/`)
+
+### 21.5 Repo mirror / commit / push evidence
+
+| field | value |
+|---|---|
+| repo_mirror | yes — writes made under `/workspace/gateway-fullbody-freeze/apps/product-shell/src/components/admin/` and manifest append |
+| commit_required | yes |
+| push_required | yes |
+| branch | work |
+| commit_hash | (recorded post-commit; see git log) |
+| pushed_to | (push attempted post-commit) |
