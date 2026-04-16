@@ -1321,3 +1321,56 @@ Still deferred and intentionally untouched by this pass:
 | branch | work |
 | commit_hash | (recorded post-commit; see git log) |
 | pushed_to | (push attempted post-commit) |
+
+## 21. Append — Admin Components Subtree Reconstruction Pass (S3.9 task dispatch)
+
+job_id: RB-INT-CHASSIS-002
+stage: S3.9
+pass: product-shell admin subtree reconstruction (`src/components/admin/` only; resolve AccessTier3Page AdminPanel import edge)
+worker: worker_a
+branch: work
+
+### 21.1 Goal and scope lock
+
+Goal: reconstruct full `src/components/admin/` subtree required to satisfy
+`src/pages/AccessTier3Page.tsx -> ../components/admin/AdminPanel` static
+import edge.
+
+Created in this pass:
+
+- `apps/product-shell/src/components/admin/AdminPanel.tsx`
+- `apps/product-shell/src/components/admin/AdminActionButton.tsx`
+- `apps/product-shell/src/components/admin/AdminStatusBlock.tsx`
+
+No files outside `apps/product-shell/src/components/admin/` were created for
+this pass.
+
+### 21.2 Direct dependency closure inside admin subtree
+
+- `AdminPanel.tsx` imports `./AdminActionButton` and `./AdminStatusBlock`.
+- `AdminActionButton.tsx` and `AdminStatusBlock.tsx` are self-contained and
+  require no additional admin-local sibling imports.
+
+### 21.3 Verification
+
+Static import presence check confirms `../components/admin/AdminPanel` from
+`src/pages/AccessTier3Page.tsx` resolves to
+`apps/product-shell/src/components/admin/AdminPanel.tsx`.
+
+### 21.4 Out-of-scope handoff
+
+Still deferred and intentionally untouched by this pass:
+
+- non-admin component gaps under `src/components/*`
+- non-component subtrees (`src/integrations/`, `src/config/`, `src/contracts/`)
+
+### 21.5 Repo mirror / commit / push evidence
+
+| field | value |
+|---|---|
+| repo_mirror | yes — writes made under `/workspace/gateway-fullbody-freeze/apps/product-shell/src/components/admin/` and manifest append |
+| commit_required | yes |
+| push_required | yes |
+| branch | work |
+| commit_hash | (recorded post-commit; see git log) |
+| pushed_to | (push attempted post-commit) |

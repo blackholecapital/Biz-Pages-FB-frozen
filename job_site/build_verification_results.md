@@ -577,3 +577,27 @@ unresolved relative import path after utils subtree reconstruction.
 Notes:
 - This fallback run intentionally did not execute any build/install command.
 - Result is suitable for the next controlled reconstruction dispatch.
+
+---
+
+## 20. Appended static import-edge detection (S3.8 fallback dispatch)
+
+Task dispatch: perform STATIC import scan across `src/app/`, `src/pages/`,
+`src/features/`, `src/components/`, `src/utils/`, and `src/hooks/` to identify
+the next unresolved relative import path after hooks subtree reconstruction.
+
+| field | value |
+|---|---|
+| method | static source scan (no npm, no vite) |
+| scanned roots | `apps/product-shell/src/app/`, `apps/product-shell/src/pages/`, `apps/product-shell/src/features/`, `apps/product-shell/src/components/`, `apps/product-shell/src/utils/`, `apps/product-shell/src/hooks/` |
+| file traversal order | lexical (`app/` → `pages/` → `features/` → `components/` → `utils/` → `hooks/`; files sorted) |
+| import traversal order | top-to-bottom line order per file (commented lines ignored) |
+| first unresolved import | `../components/admin/AdminPanel` |
+| source file | `apps/product-shell/src/pages/AccessTier3Page.tsx` |
+| source line | 5 |
+| resolved target path attempted | `apps/product-shell/src/components/admin/AdminPanel.{ts,tsx,js,jsx}` and `apps/product-shell/src/components/admin/AdminPanel/index.{ts,tsx,js,jsx}` |
+| detection result | missing target file (next unresolved static edge) |
+
+Notes:
+- This fallback run intentionally did not execute any build/install command.
+- Result is suitable for the next controlled reconstruction dispatch.
