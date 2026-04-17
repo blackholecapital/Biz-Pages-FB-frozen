@@ -62,14 +62,26 @@ export function compileRuntimePage(page, pageSpec, source, { slug } = {}) {
   const desktopBlocks = normalized.blocks;
   const isMobileNative = normalized.mobile === true;
 
+  // Detect premium shell: if the spec declares shellId desktop-premium-v1,
+  // forward the shell metadata so the gateway can use the canonical 2560×1440 stage.
+  const isPremium = normalized.shellId === "desktop-premium-v1";
+
   const result = {
     ok: true,
     version: 2,
     page,
     source,
     ...(slug ? { slug } : {}),
+    ...(isPremium
+      ? {
+          shellId: "desktop-premium-v1",
+          stage: { w: 2560, h: 1440 }
+        }
+      : {}),
     desktop: {
-      canvas: { width: 1280, minHeight: 760 },
+      canvas: isPremium
+        ? { width: 2560, minHeight: 1440 }
+        : { width: 1280, minHeight: 760 },
       blocks: desktopBlocks
     }
   };

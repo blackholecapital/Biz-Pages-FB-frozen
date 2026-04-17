@@ -63,6 +63,27 @@ export type PublishedRuntimePage = {
   exclusiveTiles?: RenderedExclusiveTile[];
 };
 
+// ── Desktop Premium v1 types ─────────────────────────────────────────────────
+
+export type PremiumStageTile = {
+  id: string;
+  asset?: string | null;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  z: number;
+};
+
+export type PremiumShellLayout = {
+  shellId: "desktop-premium-v1";
+  stage: { w: 2560; h: 1440 };
+  wallpaper?: string | null;
+  tiles: PremiumStageTile[];
+};
+
+// ── Manifest ─────────────────────────────────────────────────────────────────
+
 export type PublishedRuntimeManifest = {
   ok: true;
   version: 2;

@@ -14,6 +14,7 @@ import "./styles/admin.css";
 import "./styles/marketplace.css";
 import "./styles/published-overlay.css";
 import "./mobile/styles/mobile-overlay.css";
+import "./features/desktop-premium/desktop-premium.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

@@ -202,6 +202,9 @@ export function normalizePageSpec(spec, page) {
     if (tiles.length) result.exclusiveTiles = tiles;
   }
 
+  // Pass through desktop-premium-v1 shell ID if declared
+  if (spec.shellId === "desktop-premium-v1") result.shellId = "desktop-premium-v1";
+
   // Pass through mobile-native flags from the studio JSON
   if (spec.mobile === true) result.mobile = true;
   if (spec.viewport && typeof spec.viewport === "object" &&
