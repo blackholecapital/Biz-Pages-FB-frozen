@@ -9,7 +9,16 @@ export function HomePage() {
   const ws = SHELL.workspace;
 
   return (
-    <div ref={viewportRef} className="dpv1PageWrapper dpv1Viewport">
+    <div
+      ref={viewportRef}
+      className="dpv1PageWrapper dpv1Viewport"
+      style={{
+        backgroundImage: "url('/w99.png')",
+        backgroundSize: "cover",
+        backgroundPosition: "center center",
+        backgroundRepeat: "no-repeat",
+      }}
+    >
       <DesktopPremiumShell
         scaleState={scaleState}
         tilesLayer={
