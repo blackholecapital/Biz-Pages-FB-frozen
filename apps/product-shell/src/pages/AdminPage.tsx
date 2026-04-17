@@ -22,7 +22,7 @@ export function AdminPage() {
       <button className="workspaceTab" type="button" onClick={() => nav(buildTo("/engage", designation, slug))}>Engage</button>
       <button className="workspaceTab" type="button" onClick={() => nav(buildTo("/referrals", designation, slug))}>Referrals</button>
       <button className="workspaceTab" type="button" onClick={() => nav(buildTo("/skins", designation, slug))}>Skins</button>
-      <a className="workspaceTab" href="https://studio.xyz-labs.xyz/" target="_blank" rel="noreferrer">Biz Pages</a>
+      <button className="workspaceTab" type="button" onClick={() => nav(buildTo("/studio", designation, slug))}>Biz Pages Studio</button>
     </>
   );
 

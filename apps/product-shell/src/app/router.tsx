@@ -10,6 +10,7 @@ import { EngagePage } from "../pages/EngagePage";
 import { ReferralsPage } from "../pages/ReferralsPage";
 import { SkinMarketplacePage } from "../pages/SkinMarketplacePage";
 import { AdminPage } from "../pages/AdminPage";
+import { StudioPage } from "../pages/StudioPage";
 // DEV NOTE: To re-enable the gate locking system, uncomment the import below
 // and wrap the gated routes (see comment block further down) with <RequireGate />.
 // import { RequireGate } from "../components/gate/RequireGate";
@@ -58,6 +59,7 @@ export const router = createBrowserRouter([
       { path: "referrals", element: <ReferralsPage />, handle: { pageKey: "referrals" } },
       { path: "skins", element: <SkinMarketplacePage />, handle: { pageKey: "skins" } },
       { path: "admin", element: <AdminPage />, handle: { pageKey: "admin" } },
+      { path: "studio", element: <StudioPage />, handle: { pageKey: "studio" } },
 
       // Legacy access redirects
       { path: "access", element: <Navigate to="/exclusive" replace /> },
@@ -75,6 +77,7 @@ export const router = createBrowserRouter([
       { path: ":slug/gate/referrals", element: <ReferralsPage />, handle: { pageKey: "referrals" } },
       { path: ":slug/gate/skins", element: <SkinMarketplacePage />, handle: { pageKey: "skins" } },
       { path: ":slug/gate/admin", element: <AdminPage />, handle: { pageKey: "admin" } },
+      { path: ":slug/gate/studio", element: <StudioPage />, handle: { pageKey: "studio" } },
 
       // Designated pages
       { path: ":designation/:slug/members", element: <MembersPage />, handle: { pageKey: "members" } },
@@ -85,7 +88,8 @@ export const router = createBrowserRouter([
       { path: ":designation/:slug/engage", element: <EngagePage />, handle: { pageKey: "engage" } },
       { path: ":designation/:slug/referrals", element: <ReferralsPage />, handle: { pageKey: "referrals" } },
       { path: ":designation/:slug/skins", element: <SkinMarketplacePage />, handle: { pageKey: "skins" } },
-      { path: ":designation/:slug/admin", element: <AdminPage />, handle: { pageKey: "admin" } }
+      { path: ":designation/:slug/admin", element: <AdminPage />, handle: { pageKey: "admin" } },
+      { path: ":designation/:slug/studio", element: <StudioPage />, handle: { pageKey: "studio" } }
     ]
   }
 ]);
