@@ -66,15 +66,6 @@ export function Basket() {
 
   return (
     <div className="paymeCheckout">
-      <div className="paymeCheckoutHead">
-        <div className="paymeCheckoutTitle">PayMe Checkout</div>
-        <div className="paymeCheckoutDrop" aria-hidden>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="#3B82F6">
-            <path d="M12 2l5.5 8.5a6.5 6.5 0 11-11 0L12 2z" />
-          </svg>
-        </div>
-      </div>
-
       {/* Review your order */}
       <div className="paymeReviewCard">
         <div className="paymeReviewHead">

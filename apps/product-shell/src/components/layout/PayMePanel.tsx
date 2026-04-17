@@ -12,7 +12,7 @@ export function PayMePanel() {
       aria-label="PayMe basket"
     >
       <div className="paymeSidePanelHeader">
-        <div className="paymeSidePanelTitle">PayMe · Basket</div>
+        <div className="paymeSidePanelTitle">PayMe Checkout</div>
         <button
           type="button"
           className="paymeSidePanelClose"
