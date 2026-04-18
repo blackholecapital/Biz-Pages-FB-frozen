@@ -13,14 +13,22 @@ export function HomePage() {
   const { slug } = useParams<RouteParams>();
   const [runtimePage, setRuntimePage] = useState<PublishedRuntimePage | null>(null);
   const [wallpaperUrl, setWallpaperUrl] = useState<string | null>(null);
+  const [runtimeResolved, setRuntimeResolved] = useState<boolean>(!slug);
   const isPremiumRuntime = isPremiumRuntimePage(runtimePage);
+  const isSlugRoute = Boolean(slug);
+  const shouldDeferHomeShell = isSlugRoute && !runtimeResolved && !runtimePage;
 
   useEffect(() => {
     if (!slug) {
       setRuntimePage(null);
       setWallpaperUrl(null);
+      setRuntimeResolved(true);
       return;
     }
+
+    setRuntimeResolved(false);
+    setRuntimePage(null);
+    setWallpaperUrl(null);
 
     let cancelled = false;
 
@@ -42,12 +50,17 @@ export function HomePage() {
 
       setRuntimePage(resolvedPage);
       setWallpaperUrl(selectWallpaperUrl(resolvedPage));
+      setRuntimeResolved(true);
     });
 
     return () => {
       cancelled = true;
     };
   }, [slug]);
+
+  if (shouldDeferHomeShell) {
+    return <div data-route-intent="published-slug" data-runtime-state="pending" aria-busy="true" />;
+  }
 
   return (
     <PageShell runtimePage={runtimePage} wallpaperUrl={wallpaperUrl ?? undefined}>
