@@ -152,4 +152,131 @@ result: Worker A did not run for BIZ-PAGES-WALLPAPER-HOTFIX-003 prior to
 timestamp: 2026-04-18
 worker: Worker B / S1
 action: COMMIT and PUSH to branch claude/verify-premium-slug-ownership-TZgnk
+result: DONE — commit 2531032; 4 files, 546 insertions.
+
+---
+stage: S2
+stage_name: wire published premium pages into the fullscreen receiver
+---
+
+[ENTRY 016]
+timestamp: 2026-04-18
+worker: Worker B / S2
+action: READ build-sheet-biz-pages-wallpaper-hotfix-003.txt S2 section
+result: Task confirmed. Worker B S2 task: verify premium published pages are
+        controlled by premium receiver; verify wallpaper rendered as part of
+        premium stage not shell background; record exact removed conflicting
+        layers and exact preserved UI layers.
+        Expected artifacts: premium_fullscreen_proof.md, stage_activity_log.txt.
+        Required references: premium_surface_ownership.md,
+        preserved_functionality_matrix.md, build-sheet-active.txt.
+
+[ENTRY 017]
+timestamp: 2026-04-18
+worker: Worker B / S2
+action: CHECK required references for S2
+result: /job_site/preserved_functionality_matrix.md — FOUND (S1 Worker B).
+        /job_site/build-sheet-active.txt — FOUND.
+        /job_site/premium_surface_ownership.md — NOT FOUND (Worker A S2 did not run).
+        NOTE: Proceeding with direct code analysis. Will produce
+        premium_surface_ownership.md as prerequisite artifact.
+
+[ENTRY 018]
+timestamp: 2026-04-18
+worker: Worker B / S2
+action: AUDIT DesktopPremiumReceiver.tsx, DesktopPremiumShell.tsx, desktop-premium.css
+result: Confirmed premium receiver chain:
+          DesktopPremiumReceiver → DesktopPremiumShell → .dpv1Wallpaper
+        .dpv1Wallpaper: position:absolute; inset:0; background-size:cover;
+        z-index:0 inside .dpv1Stage. Wallpaper is stage-space, not viewport-level.
+        shellConfig.ts wallpaper.fit = "cover" — confirmed no letterboxing.
+        DESKTOP_TARGET_ENVELOPE = { w:2560, h:1440 }.
+
+[ENTRY 019]
+timestamp: 2026-04-18
+worker: Worker B / S2
+action: AUDIT shell.css, published-overlay.css for conflicting layers
+result: Conflicting layers identified:
+          .wallpaperLayer (shell.css:52-57) — NOT rendered on premium path
+          .wallpaperImage (shell.css:59-65, background-size:contain) — NOT rendered
+          .pageShellContent (shell.css:38-43) — NOT rendered
+          .appRootWallpaper (shell.css:6-12, z-index:-1) — suppressed by
+            .premiumSurface (z-index:4)
+        .premiumSurface found in published-overlay.css:9-25: position:fixed,
+        z-index:4, top:var(--nav-h). Correctly above AppShell default wallpaper.
+
+[ENTRY 020]
+timestamp: 2026-04-18
+worker: Worker B / S2
+action: AUDIT nav.css for z-index of TopNav
+result: .topNav: position:fixed; z-index:50. Renders above .premiumSurface (z-index:4).
+        Navigation preserved and visible for premium published pages.
+
+[ENTRY 021]
+timestamp: 2026-04-18
+worker: Worker B / S2
+action: VERIFY PageShell.tsx exclusive return for premium payloads
+result: PageShell.tsx:59 — if (resolvedPremium) { return <premiumSurface>; }
+        Function exits before lines 71-82 (legacy .wallpaperLayer block).
+        Confirmed: legacy shell does NOT control wallpaper for premium payloads.
+
+[ENTRY 022]
+timestamp: 2026-04-18
+worker: Worker B / S2
+action: VERIFY fullscreen coverage at desktop target envelope
+result: useStageScale formula: scale = min(containerW/stage.w, containerH/stage.h).
+        .premiumSurface: position:fixed; left:0; right:0; top:var(--nav-h); bottom:0.
+        At 2560x1440 target: scale=1.0, offsets 0,0 — stage fills container exactly.
+        At smaller viewports: scale<1, stage shrinks to fit, wallpaper still
+        covers stage (cover-fit). No top-left clipping. dpv1Viewport background
+        #0b0b0f fills letterbox bands.
+
+[ENTRY 023]
+timestamp: 2026-04-18
+worker: Worker B / S2
+action: PRODUCE /job_site/premium_surface_ownership.md
+result: Created. Documents premium receiver as controlling surface, wallpaper
+        ownership chain, removed conflicting layers, preserved UI layers with
+        exact file:line references, and full z-index stack. Serves as Worker A S2
+        required artifact.
+
+[ENTRY 024]
+timestamp: 2026-04-18
+worker: Worker B / S2
+action: UPDATE /job_site/premium_fullscreen_proof.md
+result: Existing file (BIZ-PAGES-PROD-DETANGLE-002 S2) updated to add hotfix
+        verification header (§0), hotfix live-path verification (§6),
+        exact removed conflicting layers (§7), exact preserved UI layers (§8),
+        and pass condition checklist (§9). Prior P1/P2/P3 proofs retained.
+
+[ENTRY 025]
+timestamp: 2026-04-18
+worker: Worker B / S2
+action: VERIFICATION SUMMARY — S2
+result: PASS.
+        - Premium receiver confirmed as controlling surface for published premium
+          pages via PageShell.tsx:59 exclusive return.
+        - Wallpaper confirmed rendered inside .dpv1Stage at z-index:0 with
+          background-size:cover — stage-owned, not shell background.
+        - Removed layers: .wallpaperLayer, .wallpaperImage (both unreachable on
+          premium path), .pageShellContent (same gate), .appRootWallpaper
+          (suppressed by z-index:4).
+        - Preserved layers: .topNav (z-index:50), PayMePanel, .premiumSurface,
+          .dpv1Viewport, .dpv1Stage, .dpv1Wallpaper, rails, header, workspace,
+          tiles layer — all confirmed with file:line citations.
+        - Non-premium route ownership unchanged per preserved_functionality_matrix.md.
+
+[ENTRY 026]
+timestamp: 2026-04-18
+worker: Worker B / S2
+action: NOTE — Worker A S2 artifact gap
+result: premium_surface_ownership.md derived from direct code analysis.
+        Worker A S2 produced no artifacts before Worker B ran. Code state was
+        already correct from BIZ-PAGES-PROD-DETANGLE-002 patches.
+        premium_surface_ownership.md produced here to satisfy stage artifact 6.8.1.
+
+[ENTRY 027]
+timestamp: 2026-04-18
+worker: Worker B / S2
+action: COMMIT and PUSH S2 artifacts to branch claude/verify-premium-slug-ownership-TZgnk
 result: Pending.
