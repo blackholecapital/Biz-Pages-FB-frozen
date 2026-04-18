@@ -287,3 +287,51 @@ the original ≈64 px nav-bar dilation to creep back:
 | `apps/product-shell/functions/_lib/runtime-compiler.js` | Premium compile branch unchanged |
 | `apps/product-shell/src/runtime/types.ts` | `isPremiumRuntimePage` / `adaptPremiumRuntimePage` unchanged |
 | `apps/product-shell/src/tests/premium-renderer-parity.test.ts` | All A/B/C tests still pass — formula and stage envelope unchanged |
+
+---
+
+## S2 Validation Addendum (Worker B, PATCH-A)
+
+`[BIZ-PAGES-WALLPAPER-HOTFIX-003-PATCH-A | WORKER B | S2 | RESULT]`
+
+### Validation target (tested premium slug)
+- Fixture source: `job_site/known_slug_test_vector.json`
+- Tested slug: `acme-premium`
+- Expected premium contract: `shellId: "desktop-premium-v1"` and `stage: { w: 2560, h: 1440 }`
+
+### PASS criteria and results
+
+1. **Premium runtime route no longer renders `Welcome Home` / `.homeHero`**
+   - `HomePage` computes `isPremiumRuntime = isPremiumRuntimePage(runtimePage)`.
+   - `HomePage` passes `null` children for premium runtime payloads via `{isPremiumRuntime ? null : <div className="homeHero">...}`.
+   - Result: **PASS** (premium runtime children are null; no `Welcome Home` in premium path).
+
+2. **PageShell premium dispatch is exclusive**
+   - Dispatch uses `premiumLayout ?? (isPremiumRuntimePage(runtimePage) ? adaptPremiumRuntimePage(...) : null)`.
+   - `if (resolvedPremium) return <DesktopPremiumReceiver ... asMount />;`
+   - Legacy shell block (`.pageShell`, `.wallpaperLayer`, `.pageShellContent`) only exists in the fallback return after that guard.
+   - Result: **PASS** (premium path returns early; no mixed shell rendering).
+
+3. **No legacy shell content renders on premium routes**
+   - Premium route owner is `DesktopPremiumReceiver` mount.
+   - Legacy wrapper/content classes are unreachable when `resolvedPremium` is truthy.
+   - Result: **PASS**.
+
+### Exact route ownership rules (premium vs non-premium)
+
+- **Router ownership** (`router.tsx`) remains unchanged: route paths still map by page component (`HomePage`, `MembersPage`, etc.).
+- **Runtime ownership split is component-level inside `HomePage` + `PageShell`:**
+  - For `/:slug`, `/:slug/gate`, `/:designation/:slug`, `/:designation/:slug/gate`:
+    - `HomePage` fetches runtime payload for `slug`.
+    - If payload is premium (`shellId===desktop-premium-v1` + numeric stage dims), `HomePage` children become `null` and `PageShell` dispatches exclusively to `DesktopPremiumReceiver`.
+    - If payload is non-premium, `HomePage` renders `.homeHero` and `PageShell` renders legacy wallpaper/content shell.
+- **All non-home pages** (`members`, `exclusive`, `customer`, `payme`, `engage`, `referrals`, `skins`, `admin`) remain on their existing `PageShell` usage without premium runtime-page dispatch at route level.
+
+### Exact preserved non-premium behavior
+- `.homeHero` + `Welcome Home` still render for non-premium home payloads.
+- `PageShell` still renders `.pageShell > .wallpaperLayer > .wallpaperImage` and `.pageShellContent` in non-premium mode.
+- Existing router route table and `/access*` redirects are unchanged.
+
+### Worker-B validation disposition
+- expected_status: **PASS**
+- scope-owned verdict: **PASS**

@@ -516,3 +516,21 @@ result: PASS. Commit e4560c3 — "fix(S5): premium receiver owns full
         viewport — kill nav-bar dilation". 14 files changed, 892
         insertions, 26 deletions. Pushed to
         origin/claude/fix-premium-viewport-ratio-cYQ3I.
+
+[ENTRY 050]
+timestamp: 2026-04-18
+worker: Worker B / S2 PATCH-A
+action: VALIDATE premium route cutover ownership using known slug fixture
+result: Reviewed /job_site/known_slug_test_vector.json (slug=acme-premium, shellId=desktop-premium-v1, stage=2560x1440) against HomePage/PageShell/type guard routing. Confirmed premium runtime pages suppress HomePage hero children and dispatch exclusively to DesktopPremiumReceiver; legacy shell block unreachable for premium payloads.
+
+[ENTRY 051]
+timestamp: 2026-04-18
+worker: Worker B / S2 PATCH-A
+action: RECORD premium-vs-non-premium route ownership + preserved behavior
+result: Wrote /job_site/premium_surface_ownership.md addendum with exact ownership split: router remains unchanged; HomePage+PageShell gate premium via isPremiumRuntimePage; non-premium retains homeHero+legacy shell path.
+
+[ENTRY 052]
+timestamp: 2026-04-18
+worker: Worker B / S2 PATCH-A
+action: WRITE deterministic checksum artifact
+result: Created /job_site/premium_cutover_checksum.md with PASS checklist and sha256 ledger for HomePage.tsx, PageShell.tsx, runtime/types.ts, and router.tsx confirming premium cutover exclusivity and preserved non-premium behavior.
