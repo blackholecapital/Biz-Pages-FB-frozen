@@ -21,12 +21,29 @@ export function HomePage() {
       setWallpaperUrl(null);
       return;
     }
+
     let cancelled = false;
-    fetchPublishedRuntimePage(slug, "home").then((page) => {
+
+    fetchPublishedRuntimePage(slug, "home").then(async (homePage) => {
       if (cancelled) return;
-      setRuntimePage(page);
-      setWallpaperUrl(selectWallpaperUrl(page));
+
+      let resolvedPage = homePage;
+
+      // Premium slug runtime for the known fixture can live on `tier-2`.
+      // If `home` is non-premium, probe `tier-2` and promote it only when
+      // the payload carries the premium contract.
+      if (!isPremiumRuntimePage(resolvedPage)) {
+        const tier2Page = await fetchPublishedRuntimePage(slug, "tier-2");
+        if (cancelled) return;
+        if (isPremiumRuntimePage(tier2Page)) {
+          resolvedPage = tier2Page;
+        }
+      }
+
+      setRuntimePage(resolvedPage);
+      setWallpaperUrl(selectWallpaperUrl(resolvedPage));
     });
+
     return () => {
       cancelled = true;
     };
