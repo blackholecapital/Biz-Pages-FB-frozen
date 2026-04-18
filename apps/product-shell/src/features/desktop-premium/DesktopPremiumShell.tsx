@@ -1,10 +1,23 @@
 import type { ReactNode } from "react";
-import type { StageScaleState } from "./useStageScale";
+import type { StageDims, StageScaleState } from "./useStageScale";
+import { DESKTOP_TARGET_ENVELOPE } from "./useStageScale";
 import SHELL from "./shellConfig";
 
 type DesktopPremiumShellProps = {
   scaleState: StageScaleState;
-  wallpaperUrl?: string;
+  /**
+   * Stage dimensions to render. Taken verbatim from the premium payload
+   * (`PublishedRuntimePage.stage`) — the shell never rederives these.
+   * Defaults to the canonical 2560×1440 envelope for studio use.
+   */
+  stageDims?: StageDims;
+  /**
+   * Operator desktop target envelope. Emitted as a `data-*` attribute on
+   * the root stage element for audit + test harnesses; does not affect
+   * scale math (that is controlled by `useStageScale` + `stageDims`).
+   */
+  targetEnvelope?: StageDims;
+  wallpaperUrl?: string | null;
   tilesLayer?: ReactNode;
   studioMode?: boolean;
 };
@@ -12,32 +25,47 @@ type DesktopPremiumShellProps = {
 /**
  * Pure stage renderer for desktop-premium-v1.
  *
- * Renders a 2560×1440 stage div scaled and centered via CSS transform.
- * Does not manage its own scale — caller provides scaleState from useStageScale.
- * Used identically by Studio and Receiver; both see the same shell geometry.
+ * Renders a `stageDims.w × stageDims.h` stage div scaled and centered via
+ * CSS transform. Wallpaper covers the full stage (background-size: cover,
+ * no letterboxing). Used identically by Studio and Receiver; both see the
+ * same shell geometry because both pass the same `stageDims`.
+ *
+ * This component never reads `stageDims` from a module-level constant for
+ * the renderer math — it consumes the props. The `SHELL` import is used
+ * only for header/rail/workspace chrome positions that are fixed by the
+ * shell contract (header height, rail widths, workspace band), not for the
+ * stage envelope.
  */
 export function DesktopPremiumShell({
   scaleState,
+  stageDims,
+  targetEnvelope = DESKTOP_TARGET_ENVELOPE,
   wallpaperUrl,
   tilesLayer,
   studioMode = false,
 }: DesktopPremiumShellProps) {
   const cfg = SHELL;
   const { scale, stageOffsetX, stageOffsetY } = scaleState;
+  const stage = stageDims ?? { w: scaleState.stageW, h: scaleState.stageH };
 
   return (
     <div
       className="dpv1Stage"
+      data-shell={cfg.shellId}
+      data-stage-w={stage.w}
+      data-stage-h={stage.h}
+      data-target-envelope-w={targetEnvelope.w}
+      data-target-envelope-h={targetEnvelope.h}
       style={{
-        width: cfg.stage.w,
-        height: cfg.stage.h,
+        width: stage.w,
+        height: stage.h,
         transform: `scale(${scale})`,
         transformOrigin: "top left",
         left: stageOffsetX,
         top: stageOffsetY,
       }}
     >
-      {/* Wallpaper — same fit/position/repeat in both Studio and Receiver */}
+      {/* Wallpaper — cover fit, driven by the payload URL verbatim. */}
       <div
         className="dpv1Wallpaper"
         aria-hidden
@@ -81,7 +109,7 @@ export function DesktopPremiumShell({
         }}
       />
 
-      {/* Tiles layer — stage-space absolute coordinates */}
+      {/* Tiles layer — stage-space absolute coordinates, passed through. */}
       {tilesLayer && <div className="dpv1TilesLayer">{tilesLayer}</div>}
     </div>
   );
