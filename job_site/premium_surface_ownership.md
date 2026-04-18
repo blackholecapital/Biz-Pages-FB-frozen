@@ -145,7 +145,56 @@ The following rule blocks were removed as conflicting legacy paths:
 
 ---
 
-## 6. Files Changed in S2
+---
+
+## S3 Addendum: Full-Bleed Viewport Hardening
+
+### S3.1 Identified Gaps
+
+After S2, `dpv1ReceiverMount` used only `position: fixed; inset: 0` without
+explicit `width`/`height` declarations. This is functionally equivalent for
+a fixed element with no ancestor transforms, but creates two risk scenarios:
+
+| Risk | Mechanism | Impact |
+|------|-----------|--------|
+| Ancestor CSS transform | If any parent gains `transform: ...`, the fixed element's containing block shifts from the viewport to that parent. `inset: 0` would then fill the parent, not the viewport. | Mount smaller than viewport → side/top gutters |
+| Global `img { max-width: 100% }` | Tile images inside the scaled 2560×1440 stage could be constrained to their tile's rendered CSS width (not stage-space width) if the override is not explicit. | Image display cut off inside tiles |
+| `dpv1ReceiverMount > .dpv1Viewport` override | The override rule only had `position: absolute; inset: 0` — `width: 100%; height: 100%` were only in the base `.dpv1Viewport` rule and could be clobbered by specificity in other contexts. | Viewport undersize edge case |
+
+### S3.2 Changes
+
+**`desktop-premium.css`:**
+- `dpv1ReceiverMount`: added `width: 100vw; height: 100vh; max-width: 100vw; max-height: 100vh`
+- `dpv1ReceiverMount > .dpv1Viewport`: added explicit `width: 100%; height: 100%`
+- `dpv1TileMedia`: added `max-width: none; max-height: none` to override the global `img { max-width: 100% }` rule from `global.css`
+- Mobile `@media`: added `max-height: 100dvh` alongside `height: 100dvh`
+
+**`DesktopPremiumReceiver.tsx`:**
+- Added `style={{ width: "100vw", height: "100vh" }}` inline on `dpv1ReceiverMount` div in the `asMount` branch
+- Inline style is the terminal override — wins over any CSS cascade regardless of ancestor stacking context changes
+
+### S3.3 Parent Container Audit (verified clean)
+
+| Element | CSS | max-width? | margin:auto? | Notes |
+|---------|-----|------------|--------------|-------|
+| `html, body` | `height:100%`, `margin:0` | No | No | Clean |
+| `div.appRoot` | `min-height:100vh; position:relative` | No | No | No transform → no containing-block change for fixed children |
+| `div.appBody` | `min-height:100vh` | No | No | Mobile adds `height:100dvh; overflow:hidden` — does NOT constrain fixed descendants |
+| `div.dpv1ReceiverMount` | `position:fixed; inset:0; width:100vw; height:100vh` | `max-width:100vw` | No | Full viewport |
+| `PayMePanel` (aside) | `position:fixed` | n/a | n/a | Out of normal flow, no height contribution to appRoot |
+| `TopNav` (nav) | `position:fixed; z-index:50` | n/a | n/a | Out of normal flow, floats above mount |
+
+**Verdict:** No `max-width` or `margin: auto` constraints exist anywhere in the premium render path.
+
+### S3.4 Stage Coordinate System Preserved
+
+No changes were made to `useStageScale`, `DesktopPremiumShell`, or any stage
+coordinate computation. The scale formula `min(vw / stage.w, vh / stage.h)` is
+unchanged. Stage coordinates (2560×1440) are consumed verbatim.
+
+---
+
+## 6. Files Changed in S2 + S3
 
 | File | Change |
 |------|--------|
@@ -155,3 +204,10 @@ The following rule blocks were removed as conflicting legacy paths:
 | `apps/product-shell/src/styles/published-overlay.css` | Removed `premiumSurface` + `publishedOverlay*` legacy CSS |
 | `apps/product-shell/src/features/desktop-premium/DesktopPremiumShell.tsx` | No change — confirmed correct |
 | `apps/product-shell/src/pages/StudioPage.tsx` | No change — studio unaffected by asMount path |
+
+**S3 additional changes:**
+
+| File | Change |
+|------|--------|
+| `apps/product-shell/src/features/desktop-premium/DesktopPremiumReceiver.tsx` | Inline `style={{ width:"100vw",height:"100vh" }}` on mount div in asMount branch |
+| `apps/product-shell/src/features/desktop-premium/desktop-premium.css` | `dpv1ReceiverMount`: explicit vw/vh + max-width/height; `dpv1ReceiverMount > .dpv1Viewport`: explicit w/h; `dpv1TileMedia`: `max-width:none; max-height:none` |
