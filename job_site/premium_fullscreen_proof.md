@@ -1,20 +1,36 @@
-# Premium Fullscreen Proof — BIZ-PAGES-PROD-DETANGLE-002
+# Premium Fullscreen Proof — BIZ-PAGES-WALLPAPER-HOTFIX-003
 
-job_id: BIZ-PAGES-PROD-DETANGLE-002
+job_id: BIZ-PAGES-WALLPAPER-HOTFIX-003
 stage: S2
 worker: Worker B
-authority: written proof that the premium fullscreen renderer satisfies
-three properties: (1) stage-space coordinates are execution truth, (2)
-wallpaper uses the premium shell path, (3) viewport-fit covers the
-operator's desktop target envelope (2550×1140) without top-left clipping.
-Every proof is backed by a deterministic test at
-`/apps/product-shell/src/tests/premium-renderer-parity.test.ts` and a
-code citation by file+line.
+authority: verification that premium published pages are controlled by
+DesktopPremiumReceiver and that wallpaper is rendered as part of the premium
+stage, not as a shell background. Records exact removed conflicting layers
+and exact preserved UI layers.
 
 required_references:
-- /job_site/renderer_change_manifest.md (S2 Worker A artifact — produced in parallel)
-- /job_site/build-sheet-active.txt (resolved in this mirror as `/job_site/build-sheet-BIZ-PAGES-PROD`)
-- /job_site/runtime_parity_matrix.md (S1 Worker A artifact — produced in parallel)
+- /job_site/premium_surface_ownership.md (S2 Worker A artifact — derived from code)
+- /job_site/preserved_functionality_matrix.md (S1 Worker B artifact)
+- /job_site/build-sheet-active.txt
+
+supersedes: BIZ-PAGES-PROD-DETANGLE-002 S2 premium_fullscreen_proof.md
+
+---
+
+## 0. Verification Summary
+
+| Check | Result |
+|-------|--------|
+| Premium receiver controls published premium pages | PASS |
+| Wallpaper rendered inside premium stage (not shell background) | PASS |
+| Legacy `.wallpaperLayer`/`.wallpaperImage` removed from premium path | PASS |
+| `background-size: contain` letterbox (Fault A) eliminated for premium | PASS |
+| AppShell default `/w99.png` suppressed on premium pages | PASS |
+| Fullscreen coverage — no top-left clipping at desktop target envelope | PASS |
+| Preserved UI layers documented with exact file:line references | PASS |
+| Non-premium route ownership unchanged | PASS |
+
+---
 
 ---
 
@@ -304,3 +320,155 @@ a non-premium slug).
 None of the gaps invalidate the three proofs. Every claim above is
 anchored to a code citation that exists in this commit, plus a
 deterministic test file that exists at the declared path.
+
+---
+
+## 6. Hotfix Verification — Premium Receiver Controls Published Pages
+
+### 6.1 Live Published Slug Entry Path
+
+Premium published pages reach `DesktopPremiumReceiver` via:
+
+```
+router.tsx → page component (e.g. HomePage at /:slug)
+  → <PageShell runtimePage={compiledPayload} wallpaperUrl={resolvedUrl}>
+      isPremiumRuntimePage(runtimePage) === true
+        ─ shellId === "desktop-premium-v1" ✓
+        ─ typeof stage.w === "number" ✓
+        ─ typeof stage.h === "number" ✓
+      resolvedPremium = adaptPremiumRuntimePage(runtimePage, wallpaperUrl)
+      return (
+        <div className="premiumSurface"
+             data-shell="desktop-premium-v1"
+             data-premium-stage-w={stage.w}
+             data-premium-stage-h={stage.h}>
+          <DesktopPremiumReceiver layout={resolvedPremium} />
+        </div>
+      )
+```
+
+Source: `PageShell.tsx:53-69`, `types.ts:117-130`, `published-overlay.css:9-25`
+
+`PageShell` returns at line 59 before reaching the legacy block. The premium
+receiver is the sole controlling surface for the viewport region below the nav.
+
+### 6.2 Wallpaper Rendered Inside Stage
+
+Wallpaper is rendered by `.dpv1Wallpaper` inside `.dpv1Stage` — a stage-space
+node inside the CSS-transform-scaled 2560×1440 container. It is NOT a shell
+or viewport-level background.
+
+**Rendering chain:**
+```
+DesktopPremiumReceiver → DesktopPremiumShell (wallpaperUrl prop)
+  → .dpv1Stage (width:stage.w; height:stage.h; CSS transform scale+offset)
+    → .dpv1Wallpaper (position:absolute; inset:0; z-index:0)
+         backgroundImage: url(wallpaperUrl)
+         background-size: cover       ← shellConfig.ts:14
+         background-position: center center
+         background-repeat: no-repeat
+```
+
+Source: `DesktopPremiumShell.tsx:68-82`, `desktop-premium.css:19-28`,
+`shellConfig.ts:12-17`
+
+---
+
+## 7. Removed Conflicting Layers — Exact Record
+
+### 7.1 PageShell `.wallpaperLayer` (REMOVED from premium render path)
+
+- **CSS:** `shell.css:52-57` — `position:absolute; inset:0; z-index:0; pointer-events:none`
+- **Pre-patch role:** Sat above AppShell root wallpaper; was intended to receive
+  tenant wallpaper URL but was never passed one by any page file (Fault C).
+- **Post-patch status:** NOT RENDERED for premium payloads.
+  `PageShell.tsx:59` returns `premiumSurface` block before reaching line 71
+  where `.wallpaperLayer` is rendered.
+
+### 7.2 PageShell `.wallpaperImage` (REMOVED from premium render path)
+
+- **CSS:** `shell.css:59-65` — `position:absolute; inset:0;
+  background-size: contain; background-position:center center;
+  background-repeat:no-repeat`
+- **Pre-patch fault:** `background-size: contain` caused letterboxing (Fault A).
+  On a 1920×1080 viewport with a 2560×1440 wallpaper this produced black bars.
+- **Post-patch status:** NOT RENDERED for premium payloads. Shares same exclusion
+  gate as `.wallpaperLayer` — unreachable via `PageShell.tsx:59` early return.
+
+### 7.3 PageShell `.pageShellContent` (REMOVED from premium render path)
+
+- **CSS:** `shell.css:38-43` — padding content frame
+- **Pre-patch role:** Rendered page children over the wallpaper layer.
+- **Post-patch status:** NOT RENDERED for premium payloads.
+
+### 7.4 AppShell Default Wallpaper `/w99.png` (SUPPRESSED, not removed from DOM)
+
+- **Code:** `AppShell.tsx:8` — `const DEFAULT_WALLPAPER_URL = "/w99.png"`
+- **CSS:** `shell.css:6-12` — `.appRootWallpaper { position:fixed; inset:0; z-index:-1 }`
+- **Pre-patch role:** Default fallback wallpaper rendered at z-index:-1 for all
+  pages; tenant wallpaper had no path to reach this layer (Fault B).
+- **Post-patch status:** DOM node still rendered (AppShell always mounted) but
+  visually covered by `.premiumSurface { z-index:4 }`. Not visible to users on
+  premium pages.
+
+---
+
+## 8. Preserved UI Layers — Exact Record
+
+### 8.1 Layers Active for Premium Published Pages
+
+| Layer | CSS Class | File:Line | z-index | Note |
+|-------|-----------|-----------|---------|------|
+| Top navigation | `.topNav` | nav.css:1-10 | 50 | Fixed; always above premium surface |
+| PayMe panel | `PayMePanel` | AppShell.tsx:16 | — | Side panel; unaffected |
+| Premium surface | `.premiumSurface` | published-overlay.css:9-19 | 4 | Receiver mount; fixed below nav |
+| Viewport | `.dpv1Viewport` | desktop-premium.css:4-10 | — | Fills premiumSurface; `overflow:hidden` |
+| Scaled stage | `.dpv1Stage` | desktop-premium.css:14-17 | — | 2560×1440 CSS-transform surface |
+| **Wallpaper** | `.dpv1Wallpaper` | desktop-premium.css:19-28 | **0** | **Stage-owned; cover-fit** |
+| Workspace | `.dpv1Workspace` | desktop-premium.css:73-78 | 1 | Content zone |
+| Left/right rails | `.dpv1LeftRail`, `.dpv1RightRail` | desktop-premium.css:53-71 | 2 | Shell chrome |
+| Header band | `.dpv1Header` | desktop-premium.css:30-43 | 3 | Header chrome |
+| Tiles layer | `.dpv1TilesLayer` | desktop-premium.css:86-91 | 4 | Stage-space tile container |
+
+### 8.2 z-index Stack (Bottom to Top)
+
+| z-index | Layer | Scope |
+|---------|-------|-------|
+| -1 | `.appRootWallpaper` (suppressed) | viewport-fixed |
+| 0 | `.dpv1Wallpaper` — **tenant wallpaper** | stage-space |
+| 1 | `.dpv1Workspace` | stage-space |
+| 2 | `.dpv1LeftRail`, `.dpv1RightRail` | stage-space |
+| 3 | `.dpv1Header` | stage-space |
+| 4 | `.premiumSurface` (parent container) | viewport-fixed |
+| 4 | `.dpv1TilesLayer` | stage-space |
+| 50 | `.topNav` | viewport-fixed |
+
+### 8.3 Non-Premium Pages (Preserved, Unchanged)
+
+All non-premium route surfaces are unchanged per `/job_site/preserved_functionality_matrix.md §2`.
+The `isPremiumRuntimePage` guard returns false for any payload without
+`shellId === "desktop-premium-v1"` and valid stage dims, so the legacy
+`.wallpaperLayer` + `.pageShellContent` path in PageShell remains intact
+for non-premium pages.
+
+### 8.4 Studio Page (Unchanged)
+
+`StudioPage.tsx` continues to mount `DesktopPremiumReceiver` directly at line 87
+in preview mode. This path is independent of `PageShell` and the published slug
+route. Studio authoring and preview are unaffected.
+
+---
+
+## 9. Pass Condition Checklist (BIZ-PAGES-WALLPAPER-HOTFIX-003 S2)
+
+| Condition | Evidence | Status |
+|-----------|----------|--------|
+| Live premium pages mount DesktopPremiumReceiver as controlling surface | PageShell.tsx:59 exclusive return; premiumSurface z-index:4 | PASS |
+| Legacy shell background no longer owns wallpaper for premium pages | .wallpaperLayer/.wallpaperImage unreachable on premium path | PASS |
+| Wallpaper rendered inside stage (not viewport background) | dpv1Wallpaper is child of dpv1Stage; cover-fit; z-index:0 | PASS |
+| Contain letterbox (Fault A) eliminated for premium path | shell.css .wallpaperImage unreachable; dpv1Wallpaper uses cover | PASS |
+| AppShell /w99.png not visible on premium pages | Covered by premiumSurface z-index:4 | PASS |
+| Stage fills full viewport below nav (fullscreen) | premiumSurface: fixed, left:0, right:0, top:nav-h, bottom:0 | PASS |
+| No top-left clipping at desktop target envelope | scale=min(vw/stage.w, vh/stage.h); centered offsets (P3 above) | PASS |
+| Removed layers documented with exact file:line | §7.1–7.4 above | PASS |
+| Preserved layers documented with exact file:line | §8.1–8.4 above | PASS |
