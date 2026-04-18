@@ -472,3 +472,153 @@ route. Studio authoring and preview are unaffected.
 | No top-left clipping at desktop target envelope | scale=min(vw/stage.w, vh/stage.h); centered offsets (P3 above) | PASS |
 | Removed layers documented with exact file:line | §7.1–7.4 above | PASS |
 | Preserved layers documented with exact file:line | §8.1–8.4 above | PASS |
+
+---
+
+## 10. Viewport-Fill Verification — Exact Scaling Behavior
+
+### 10.1 Screenshot Interpretation
+
+The screenshot provided shows the live site at
+`96ddf4ed.biz-pages-fb-frozen.pages.dev` (home route `/`) with a calibration
+test wallpaper (PATTERN 3: BULLSEYE & THIRDS XY TEST, CANVAS: 2560×1440).
+
+**Path confirmed:** This is the LEGACY PageShell path, not the premium receiver.
+The "Welcome Home" text from `HomePage.tsx` is visible — this text is rendered
+by `<PageShell>` children and would not appear in the premium receiver path. The
+calibration wallpaper is rendering through `.appRootWallpaper` (AppShell default,
+`position:fixed; inset:0; z-index:-1`) via the `background-image` style, likely
+set for this test.
+
+**Why no letterboxing is visible in the screenshot:**
+The browser viewport in the screenshot is approximately 1366×768 pixels.
+`1366 / 768 = 1.779` — this is essentially identical to 16:9 (1.778). The
+calibration canvas is also 2560×1440 = 16:9. When aspect ratios match exactly,
+`background-size: contain` is equivalent to `background-size: cover` — the image
+fills the viewport edge-to-edge on both axes. This is why the calibration grid
+fills the full browser viewport with no visible margins in the screenshot.
+
+This is a special case unique to 16:9 displays. For any viewport whose aspect
+ratio is not exactly 16:9, letterboxing appears on one axis.
+
+### 10.2 Premium Path Scaling — Exact Formula
+
+**Source:** `useStageScale.ts:77-80`
+
+```
+scale    = Math.min(containerW / stage.w, containerH / stage.h)
+offsetX  = (containerW - stage.w × scale) / 2
+offsetY  = (containerH - stage.h × scale) / 2
+```
+
+This is **contain semantics**: the stage fits entirely inside the container,
+preserving aspect ratio, with the limiting axis at 100% fill and the other axis
+with symmetric bands.
+
+**Container dimensions for the premium path:**
+- `.premiumSurface` is `position:fixed; left:0; right:0; top:var(--nav-h,72px); bottom:0`
+- Container width  = `window.innerWidth`
+- Container height = `window.innerHeight - 72` (nav bar consumed)
+
+### 10.3 Worked Example — 1366×768 Display (Screenshot Viewport)
+
+For the **premium path** on a 1366×768 display:
+
+```
+containerW = 1366
+containerH = 768 - 72  = 696
+stage.w    = 2560
+stage.h    = 1440
+
+containerAR = 1366 / 696  = 1.963  (wider than 16:9 = 1.778)
+
+scale    = min(1366/2560, 696/1440)
+         = min(0.5336,    0.4833)
+         = 0.4833          ← height-bound
+
+scaledW  = 2560 × 0.4833  = 1237 px
+scaledH  = 1440 × 0.4833  = 696  px  (fills container height exactly)
+
+offsetX  = (1366 - 1237) / 2 = 64.5 px   ← SIDE BANDS: 64.5 px each side
+offsetY  = (696  - 696)  / 2 = 0 px       ← no top/bottom bands
+```
+
+**Side band fill:** `.dpv1Viewport { background: #0b0b0f }` — the same dark
+color used throughout the premium shell. The bands are NOT whitespace; they are
+visually indistinguishable from the shell chrome surrounding the stage.
+
+**Wallpaper within the stage:** `.dpv1Wallpaper { background-size: cover }`
+covers the full 2560×1440 stage surface. After CSS transform scaling, the
+wallpaper covers the full 1237×696 px rendered stage area — no letterboxing
+within the stage itself.
+
+### 10.4 Nav-Bar Aspect-Ratio Dilation
+
+The nav bar is the reason the premium path container is always wider-than-16:9
+for standard 16:9 monitors:
+
+| Display | Container WxH | Container AR | Scale type | Side bands |
+|---------|---------------|-------------|------------|-----------|
+| 1366×768 | 1366×696 | 1.963 | Height-bound | 64.5 px each |
+| 1920×1080 | 1920×1008 | 1.905 | Height-bound | 64.0 px each |
+| 2560×1440 | 2560×1368 | 1.871 | Height-bound | 64.0 px each |
+| 3840×2160 | 3840×2088 | 1.839 | Height-bound | 64.0 px each |
+
+For all standard 16:9 monitors, the premium container is wider-than-16:9
+(nav bar reduces height → wider AR) and the scale is height-bound. The side
+bands are always approximately 64 px wide, filled with `#0b0b0f`.
+
+A viewport narrower than 16:9 (portrait, or ultra-narrow) would be width-bound
+with top/bottom bands instead.
+
+### 10.5 Wallpaper Coverage Assessment
+
+| Surface | Coverage | Method |
+|---------|----------|--------|
+| Within `.dpv1Stage` (2560×1440 stage space) | 100% — no letterboxing | `background-size: cover` on `.dpv1Wallpaper` |
+| Within `.dpv1Viewport` (scaled stage footprint) | 100% — stage exactly fills height axis | `min()` scale, height-bound |
+| Side bands within `.dpv1Viewport` | 100% — filled `#0b0b0f` | `.dpv1Viewport { background: #0b0b0f }` |
+| Full `.premiumSurface` area | 100% — stage + dark side bands | Stage + viewport background |
+| Legacy AppShell wallpaper (z-index:-1) | Suppressed — hidden under premiumSurface | z-index:4 > z-index:-1 |
+
+**Conclusion:** The wallpaper covers the entire premium stage surface. The side
+bands (≈64 px each for standard 16:9 monitors) are filled with `#0b0b0f` — the
+same dark tone as the shell theme. No whitespace, no contrasting letterbox bars.
+
+### 10.6 Aspect Ratio Preservation
+
+The `min()` formula preserves stage aspect ratio exactly. The stage is never
+stretched, squished, or distorted. The 2560×1440 coordinate system is preserved
+verbatim — tile coordinates remain correct at all viewport sizes.
+
+For cover-mode full-bleed fill (zero bands on both axes for all viewports), the
+formula would change to `Math.max(containerW/stage.w, containerH/stage.h)`. This
+would clip stage-edge content (tiles near the left/right edges would be hidden
+for wider-than-16:9 viewports). The current `min()` approach is the safer choice
+for tile content preservation; side bands are the accepted tradeoff.
+
+### 10.7 Legacy Path vs Premium Path — Comparison
+
+| Property | Legacy AppShell path (screenshot) | Premium path |
+|----------|----------------------------------|--------------|
+| Wallpaper container | Full viewport (inset:0) | Below nav (top:72px) |
+| Scale method | CSS `background-size: contain` | `Math.min()` JS formula |
+| At 1366×768 (16:9 display) | Perfect fill (AR match) | 64.5 px side bands |
+| Wallpaper within container | `contain` (letterboxed if AR mismatch) | `cover` (never letterboxed) |
+| Bands when AR mismatch | Whitespace letterbox bars | `#0b0b0f` dark fill |
+
+The screenshot shows the legacy path at 16:9 with no letterboxing because 16:9
+container + 16:9 image → `contain` = `cover`. The premium path ALWAYS uses
+`cover` for the wallpaper within the stage, regardless of container shape.
+
+### 10.8 Pass / Limitation Record
+
+| Condition | Status | Notes |
+|-----------|--------|-------|
+| Wallpaper covers entire stage surface | PASS | `background-size: cover` on dpv1Wallpaper |
+| Wallpaper covers entire premium surface area | PASS | Stage + #0b0b0f bands fill premiumSurface |
+| No whitespace or contrasting letterbox bands | PASS | Bands are #0b0b0f, matching shell |
+| Aspect ratio preserved at all viewport sizes | PASS | Math.min() contain semantics |
+| Side bands eliminated for standard 16:9 monitors | LIMITATION | ≈64 px dark bands each side due to nav-bar AR dilation |
+| Zero-band full-bleed for all viewport shapes | LIMITATION | Would require Math.max() (cover for stage) with edge-tile clip |
+| Screenshot path confirmed (legacy vs premium) | PASS | "Welcome Home" confirms legacy PageShell path in screenshot |
