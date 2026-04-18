@@ -131,3 +131,22 @@ Before S2 of BIZ-PAGES-PROD-DETANGLE-002, `PageShell` had no premium dispatch:
 | Legacy block unreachable when premium fires | PageShell.tsx:59 (return) | PASS |
 | Premium receiver mounts with full-bleed CSS | published-overlay.css:9 | PASS |
 | StudioPage preview still uses receiver directly | StudioPage.tsx:87 | PASS (unchanged) |
+
+## 8. First-Paint Ownership Rule (Published Slug Routes)
+
+For slug-bearing Home routes (`/:slug`, `/:slug/gate`, `/:designation/:slug`,
+`/:designation/:slug/gate`), `HomePage` now defers `PageShell` mounting until
+runtime resolution completes.
+
+Gate conditions in `HomePage.tsx`:
+- `isSlugRoute === true`
+- `runtimeResolved === false`
+- `runtimePage === null`
+
+When all conditions hold, Home returns a neutral pending node and **does not
+render**:
+- legacy `homeHero`
+- legacy `PageShell` wallpaper/content frame
+
+This blocks first-paint fallback to legacy chrome on premium-intended slugs
+while preserving non-slug Home behavior.

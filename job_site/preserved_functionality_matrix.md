@@ -174,3 +174,11 @@ valid `stage` dims.
 `router.tsx` are structurally unchanged. The legacy `PageShell` frame remains
 the render path for every payload that does not satisfy the premium guard.
 Studio authoring and preview are unaffected.
+
+## 5. First-Paint Regression Guard (Hotfix-003 Patch A)
+
+| Verification Point | Evidence | Result |
+|-------------------|----------|--------|
+| Slug Home routes do not mount `PageShell` while runtime is unresolved | `HomePage.tsx` pending gate: `isSlugRoute && !runtimeResolved && !runtimePage` | PASS |
+| `homeHero` cannot flash before premium probe completes | Pending branch returns neutral node before `PageShell` render | PASS |
+| Non-slug `/` and `/gate` behavior remains immediate | `runtimeResolved` initializes to `true` when no `slug` param is present | PASS |
