@@ -1,6 +1,22 @@
+# Cloudflare Pages _redirects — apps/product-shell
+# job_id: BIZ-PAGES-PROD-DETANGLE-002 / S4 / Worker B
+#
+# Ordering rules (Cloudflare Pages):
+#   1. Pages Functions at /api/* always run first (file-based routing in
+#      apps/product-shell/functions/). _redirects does NOT shadow them.
+#   2. Lines below are evaluated top-down; first match wins.
+#   3. Each iframe-module rule requires its build output to exist at deploy
+#      time. Gate modules are enumerated in /job_site/module_deploy_gate_spec.md.
+#   4. The SPA catch-all MUST remain last.
+#
+# Removed from prior revision (see /job_site/deploy_cleanup_manifest.md):
+#   - /apps/referrals/*  — no apps/modules/referrals source; orphan route.
+#   - /apps/vault/*      — no apps/modules/vault source; orphan route.
+#
+# Live module rules (source confirmed under apps/modules/<name>, built into
+# apps/product-shell/public/apps/<name>/ by the root build chain).
 /apps/payme/*    /apps/payme/index.html    200
 /apps/engage/*   /apps/engage/index.html   200
-/apps/referrals/* /apps/referrals/index.html 200
-/apps/vault/*    /apps/vault/index.html    200
 
+# SPA catch-all for product-shell. MUST be the final rule.
 /*    /index.html   200
