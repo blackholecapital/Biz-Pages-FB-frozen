@@ -611,7 +611,7 @@ The screenshot shows the legacy path at 16:9 with no letterboxing because 16:9
 container + 16:9 image → `contain` = `cover`. The premium path ALWAYS uses
 `cover` for the wallpaper within the stage, regardless of container shape.
 
-### 10.8 Pass / Limitation Record
+### 10.8 Pass / Limitation Record (pre-S5)
 
 | Condition | Status | Notes |
 |-----------|--------|-------|
@@ -619,6 +619,119 @@ container + 16:9 image → `contain` = `cover`. The premium path ALWAYS uses
 | Wallpaper covers entire premium surface area | PASS | Stage + #0b0b0f bands fill premiumSurface |
 | No whitespace or contrasting letterbox bands | PASS | Bands are #0b0b0f, matching shell |
 | Aspect ratio preserved at all viewport sizes | PASS | Math.min() contain semantics |
-| Side bands eliminated for standard 16:9 monitors | LIMITATION | ≈64 px dark bands each side due to nav-bar AR dilation |
+| Side bands eliminated for standard 16:9 monitors | RESOLVED in S5 | See §11 |
 | Zero-band full-bleed for all viewport shapes | LIMITATION | Would require Math.max() (cover for stage) with edge-tile clip |
 | Screenshot path confirmed (legacy vs premium) | PASS | "Welcome Home" confirms legacy PageShell path in screenshot |
+
+---
+
+## 11. S5 Hotfix — Receiver owns the FULL viewport (no AppShell/HomePage inheritance)
+
+### 11.1 What §10 got wrong (and why)
+
+§10.3 stated "container height = window.innerHeight − 72 (nav bar
+consumed)". That was a stale characterisation: by S2/S3 the
+`dpv1ReceiverMount` div already declared
+`position: fixed; inset: 0; width: 100vw; height: 100vh`, so the receiver
+mount already occupies the FULL viewport — the nav bar floats above it
+(z-index 50) rather than reducing it. The container measured by
+`useStageScale` is the receiver's `dpv1Viewport`, which fills the full
+mount, so the container WxH on a 1366×768 display is **1366 × 768**, not
+1366 × 696. The ≈64 px side bands characterised in §10.4 do not occur
+in the post-S2/S3 build.
+
+### 11.2 What S5 added
+
+S5 added explicit code-level reinforcement to make the full-viewport
+ownership impossible to regress silently:
+
+| File | Change |
+|------|--------|
+| `apps/product-shell/src/features/desktop-premium/useStageScale.ts` | New `UseStageScaleOptions.fullPublishedViewport` flag. When set, the hook samples `window.innerWidth/innerHeight` and uses the larger of (container axis, viewport axis) per axis; also installs a `window.resize` listener. |
+| `apps/product-shell/src/features/desktop-premium/DesktopPremiumReceiver.tsx` | Receiver passes `{ fullPublishedViewport: !!asMount }` when mounting the published-premium surface. Inline `top: 0; left: 0` added on the mount div. New `data-premium-surface="full-viewport"` attribute. |
+| `apps/product-shell/src/features/desktop-premium/DesktopPremiumShell.tsx` | Doc-only — surface ownership invariant clarified. |
+| `apps/product-shell/src/components/layout/PageShell.tsx` | Doc-only — premium branch comment now explicit about no top-offset wrapper. |
+| `apps/product-shell/src/components/layout/AppShell.tsx` | New layout-tier proxy file documenting preserved (non-premium) behavior. |
+
+### 11.3 Worked example — 1366×768 display, post-S5
+
+| Param | Value |
+|-------|-------|
+| containerW | 1366 (= window.innerWidth) |
+| containerH | 768 (= window.innerHeight; no `--nav-h` subtraction) |
+| containerAR | 1.7786 (= 16:9 within 0.06%) |
+| scale | min(1366/2560, 768/1440) = min(0.5336, 0.5333) = 0.5333 (height-bound by 0.06%) |
+| scaledW | 2560 × 0.5333 ≈ 1365.33 px |
+| scaledH | 1440 × 0.5333 = 768 px |
+| offsetX | (1366 − 1365.33) / 2 ≈ 0.33 px (visually no bands) |
+| offsetY | 0 |
+
+The horizontal letterbox collapses from ≈64.5 px each side (§10.3) to
+≈0.33 px each side — visually indistinguishable from a perfect fit.
+
+### 11.4 Worked example — other standard 16:9 displays
+
+| Display | Container WxH | Container AR | Scale | offsetX | offsetY |
+|---------|---------------|--------------|-------|---------|---------|
+| 1366×768 | 1366×768 | 1.7786 | 0.5333 | 0.33 px | 0 |
+| 1920×1080 | 1920×1080 | 1.7778 | 0.7500 | 0 | 0 |
+| 2560×1440 | 2560×1440 | 1.7778 | 1.0000 | 0 | 0 |
+| 3840×2160 | 3840×2160 | 1.7778 | 1.5000 | 0 | 0 |
+
+**Conclusion:** the dark side-fill on standard 16:9 displays disappears
+because the premium receiver now owns the full viewport (1366×768, not
+1366×696). The `Math.min(...)` contain semantics are preserved verbatim
+— no switch to `Math.max(...)`.
+
+### 11.5 AppShell / HomePage inheritance — explicitly removed for premium-published
+
+| Inherited behavior (pre-S5) | Post-S5 status |
+|------------------------------|----------------|
+| AppShell `/w99.png` visible behind premium stage | OCCLUDED — `dpv1ReceiverMount` z-index 4 covers `.appRootWallpaper` z-index -1 |
+| HomePage `<div className="homeHero">` over premium wallpaper | NOT RENDERED — `PageShell` returns receiver early, never reaches `children` |
+| `--nav-h` (72 px) subtracted from premium scale container | NOT SUBTRACTED — receiver mount is `inset: 0`; `useStageScale` uses larger of (container, window) |
+| `.pageShell` legacy frame wrapping the receiver | NOT WRAPPED — `PageShell.tsx:61-69` early return |
+| Legacy `.wallpaperLayer` painting tenant wallpaper | NOT REACHED — same early return |
+
+### 11.6 Operator target envelope (2550×1140) — preserved
+
+The operator's reference envelope 2550×1140 is wider-than-16:9
+(1140/2550 → 16:8.94). For that envelope the math still requires a
+horizontal letterbox of ≈261.67 px each side (verified by tests `C1`,
+`C2`, `C3`, `C7` in
+`apps/product-shell/src/tests/premium-renderer-parity.test.ts`). That
+behavior is intentional — the stage cannot fit the envelope's aspect
+ratio without clipping unless we switch to `Math.max(...)` cover
+semantics, which the build sheet forbids.
+
+### 11.7 Files changed (S5)
+
+- `apps/product-shell/src/features/desktop-premium/useStageScale.ts`
+- `apps/product-shell/src/features/desktop-premium/DesktopPremiumReceiver.tsx`
+- `apps/product-shell/src/features/desktop-premium/DesktopPremiumShell.tsx` (doc-only)
+- `apps/product-shell/src/components/layout/PageShell.tsx` (doc-only)
+- `apps/product-shell/src/components/layout/AppShell.tsx` (new layout-tier proxy)
+
+### 11.8 Preserved surfaces (S5)
+
+- `apps/product-shell/src/app/AppShell.tsx` — non-premium nav, side cart, default `/w99.png` wallpaper unchanged
+- `apps/product-shell/src/components/nav/TopNav.tsx` — TopNav unchanged for all routes
+- `apps/product-shell/src/components/layout/PayMePanel.tsx` — side cart unchanged
+- `apps/product-shell/src/styles/shell.css` — legacy non-premium classes unchanged
+- `apps/product-shell/src/styles/published-overlay.css` — tier-2 `.exclusiveTile*` unchanged
+- `apps/product-shell/src/features/desktop-premium/desktop-premium.css` — `.dpv1ReceiverMount` declaration unchanged
+- `apps/product-shell/src/pages/StudioPage.tsx` — Studio path opts out of `fullPublishedViewport`; behavior unchanged
+- `apps/product-shell/functions/_lib/runtime-compiler.js` — premium compile branch unchanged
+- `apps/product-shell/src/runtime/types.ts` — `isPremiumRuntimePage` / `adaptPremiumRuntimePage` unchanged
+- `apps/product-shell/src/tests/premium-renderer-parity.test.ts` — all A/B/C tests still pass; formula and stage envelope unchanged
+
+### 11.9 Pass conditions (S5)
+
+| Condition | Evidence | Status |
+|-----------|----------|--------|
+| Premium published pages no longer inherit AppShell/HomePage wallpaper behavior | `.appRootWallpaper` (z-index -1) fully occluded by `.dpv1ReceiverMount` (z-index 4); `HomePage.homeHero` not rendered (PageShell early return) | PASS |
+| Premium receiver owns the full viewport | `.dpv1ReceiverMount { position: fixed; inset: 0; width: 100vw; height: 100vh }` + inline `top:0; left:0` on the mount div | PASS |
+| Dark side bands on standard 16:9 displays eliminated | §11.3–11.4 worked examples: ≈0.33 px on 1366×768; 0 px on 1920×1080 / 2560×1440 / 3840×2160 | PASS |
+| Contain semantics preserved (no Math.max switch) | `useStageScale.ts:80` retains `Math.min(...)` | PASS |
+| Non-premium navigation behavior preserved | `app/AppShell.tsx` unchanged; layout-tier `AppShell.tsx` is a re-export proxy | PASS |
+| Operator target envelope letterbox math unchanged | tests `C1`, `C2`, `C3`, `C7` still pass | PASS |

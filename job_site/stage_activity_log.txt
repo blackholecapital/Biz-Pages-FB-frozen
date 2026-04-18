@@ -389,3 +389,130 @@ timestamp: 2026-04-18
 worker: Worker B / S2 (viewport-fill pass)
 action: COMMIT and PUSH viewport-fill verification to branch
 result: Pending.
+
+---
+
+[ENTRY 038]
+timestamp: 2026-04-18
+worker: Worker A / S5 (premium stage scaling and fullscreen fit proof)
+action: READ build-sheet-biz-pages-wallpaper-hotfix-003.txt §6.6 (S5 worker_a_order)
+result: Task confirmed. Patch premium published pages so the premium stage
+        owns the full available published viewport without nav-bar-induced
+        aspect-ratio dilation. Remove legacy top-offset container behavior
+        for the published-premium path only. Preserve non-premium nav.
+        Do NOT switch to Math.max(). Keep contain semantics. Update proof
+        to show dark side-fill on standard 16:9 displays disappears because
+        the premium receiver now owns the full viewport.
+
+[ENTRY 039]
+timestamp: 2026-04-18
+worker: Worker A / S5
+action: AUDIT current state of premium stack
+result: dpv1ReceiverMount already declared as position:fixed; inset:0;
+        width:100vw; height:100vh from S2/S3. PageShell premium branch
+        already returns the receiver with asMount and no external wrapper.
+        useStageScale measures containerRef.clientWidth/clientHeight only.
+        published-overlay.css does not contain .premiumSurface (already
+        removed). The original ≈64 px side-band characterisation in
+        premium_fullscreen_proof.md §10 is stale — it described a
+        pre-receiver-ownership configuration. S5 patches must add code
+        reinforcement (so a future regression cannot silently re-introduce
+        the dilation) and update the proof to reflect the post-S2/S3
+        full-viewport reality.
+
+[ENTRY 040]
+timestamp: 2026-04-18
+worker: Worker A / S5
+action: PATCH apps/product-shell/src/features/desktop-premium/useStageScale.ts
+result: Added UseStageScaleOptions.fullPublishedViewport flag. When true,
+        the hook samples window.innerWidth/innerHeight and uses the larger
+        of (container axis, viewport axis) per axis. Added a window.resize
+        listener so viewport-only changes (URL-bar collapse, fullscreen
+        toggles) update the scale. Math.min(...) contain-semantics formula
+        unchanged. Studio path leaves the flag off and continues to measure
+        its own preview box exactly.
+
+[ENTRY 041]
+timestamp: 2026-04-18
+worker: Worker A / S5
+action: PATCH apps/product-shell/src/features/desktop-premium/DesktopPremiumReceiver.tsx
+result: Receiver now passes { fullPublishedViewport: !!asMount } to
+        useStageScale. Inline style on the mount div extended with top: 0;
+        left: 0 (belt-and-suspenders against any inherited
+        top: var(--nav-h) cascade). New data-premium-surface="full-viewport"
+        attribute lets test harnesses assert ownership at the DOM level.
+
+[ENTRY 042]
+timestamp: 2026-04-18
+worker: Worker A / S5
+action: PATCH apps/product-shell/src/features/desktop-premium/DesktopPremiumShell.tsx (doc-only)
+result: Docblock now states the surface ownership invariant: scale,
+        stageOffsetX, and stageOffsetY arrive pre-baked against the
+        receiver's owning surface (the full viewport for the published
+        path). Render math unchanged.
+
+[ENTRY 043]
+timestamp: 2026-04-18
+worker: Worker A / S5
+action: PATCH apps/product-shell/src/components/layout/PageShell.tsx (doc-only)
+result: Premium-branch comment now explicitly states no top-offset wrapper,
+        no .pageShell, no .wallpaperLayer for the published-premium path.
+        Early return at the same line; no behavior change.
+
+[ENTRY 044]
+timestamp: 2026-04-18
+worker: Worker A / S5
+action: CREATE apps/product-shell/src/components/layout/AppShell.tsx
+result: New layout-tier proxy file. Re-exports the canonical AppShell from
+        app/AppShell.tsx so existing router imports continue to work.
+        Documents preserved (non-premium) behavior — TopNav, PayMePanel,
+        PayMeCartProvider, default /w99.png wallpaper layer all unchanged
+        — and surface ownership for premium-published.
+
+[ENTRY 045]
+timestamp: 2026-04-18
+worker: Worker A / S5
+action: MIRROR updated files into job_site/repo_mirror/Biz-Pages-FB-frozen-main
+result: useStageScale.ts (new in mirror), DesktopPremiumReceiver.tsx,
+        DesktopPremiumShell.tsx, components/layout/PageShell.tsx, and new
+        components/layout/AppShell.tsx all copied from the real repo into
+        the mirror tree.
+
+[ENTRY 046]
+timestamp: 2026-04-18
+worker: Worker A / S5
+action: WRITE /job_site/premium_stage_scaling_spec.md
+result: New spec documents the scale formula (preserved Math.min contain
+        semantics), the surface ownership contract (receiver owns full
+        viewport for published-premium; Studio caller owns container),
+        worked examples for 1366×768/1920×1080/2560×1440/3840×2160 (≈0/0/0/0
+        side-band), the operator target envelope (2550×1140 — preserved
+        ≈261 px X-letterbox), files changed, and files preserved.
+
+[ENTRY 047]
+timestamp: 2026-04-18
+worker: Worker A / S5
+action: APPEND S5 addendum to /job_site/premium_surface_ownership.md
+result: §S5.1–S5.6 record problem closed, code reinforcement, post-S5
+        surface ownership table, removed AppShell/HomePage inheritance,
+        files changed, and files preserved.
+
+[ENTRY 048]
+timestamp: 2026-04-18
+worker: Worker A / S5
+action: APPEND §11 to /job_site/premium_fullscreen_proof.md
+result: §11 supersedes §10's side-band characterisation. Documents what
+        §10 got wrong (stale container = innerHeight − 72 model), what S5
+        added, worked examples on standard 16:9 displays showing the
+        side-band eliminated, the explicit removal of AppShell/HomePage
+        inheritance for premium-published, the preserved operator envelope
+        letterbox math, and S5 pass conditions.
+
+[ENTRY 049]
+timestamp: 2026-04-18
+worker: Worker A / S5
+action: COMMIT and PUSH S5 changes to claude/fix-premium-viewport-ratio-cYQ3I
+result: PASS. Commit e4560c3 — "fix(S5): premium receiver owns full
+        viewport — kill nav-bar dilation". 14 files changed, 892
+        insertions, 26 deletions. Pushed to
+        origin/claude/fix-premium-viewport-ratio-cYQ3I.

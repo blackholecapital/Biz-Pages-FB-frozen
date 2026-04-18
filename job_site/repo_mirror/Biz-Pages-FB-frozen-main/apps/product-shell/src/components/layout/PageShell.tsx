@@ -59,7 +59,13 @@ export function PageShell({
       : null);
 
   if (resolvedPremium) {
-    // Receiver owns its own full-viewport surface — no wrapper div here.
+    // Published-premium path (BIZ-PAGES-WALLPAPER-HOTFIX-003 S5):
+    // No wrapper div here, no `top: var(--nav-h)` offset, no
+    // `.pageShell` / `.wallpaperLayer` legacy chrome. The receiver mounts
+    // its own `dpv1ReceiverMount` (position: fixed; inset: 0;
+    // width: 100vw; height: 100vh) and is the sole owner of the published
+    // surface. The app nav floats above it (z-index 50); the AppShell
+    // default wallpaper (z-index -1) is fully occluded.
     return <DesktopPremiumReceiver layout={resolvedPremium} asMount />;
   }
 

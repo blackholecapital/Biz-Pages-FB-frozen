@@ -75,9 +75,15 @@ type DesktopPremiumReceiverProps = {
  */
 export function DesktopPremiumReceiver({ layout, asMount }: DesktopPremiumReceiverProps) {
   const viewportRef = useRef<HTMLDivElement>(null);
+  // Published-premium path: tell useStageScale to use the full visual
+  // viewport as the scale container, not whatever a (possibly nav-offset)
+  // ancestor reports. This is the BIZ-PAGES-WALLPAPER-HOTFIX-003 S5 contract:
+  // the premium receiver — not AppShell or HomePage — owns the published
+  // surface, and that surface is 100vw × 100vh by declaration.
   const scaleState = useStageScale(
     viewportRef as RefObject<HTMLElement>,
-    layout.stage
+    layout.stage,
+    { fullPublishedViewport: !!asMount }
   );
 
   const shellNode = (
@@ -91,18 +97,25 @@ export function DesktopPremiumReceiver({ layout, asMount }: DesktopPremiumReceiv
   );
 
   if (asMount) {
-    // Published path: receiver owns the full viewport. The nav (z-index 50)
-    // floats above; the AppShell wallpaper layer is fully occluded.
-    // Inline width/height enforce viewport dimensions as a belt-and-suspenders
-    // override: if any ancestor ever gains a CSS transform (which would change
-    // the fixed-element containing block), the 100vw/100vh inline values still
-    // guarantee a full-viewport mount regardless of cascade.
+    // Published path: receiver owns the FULL viewport (100vw × 100vh) — no
+    // top-offset for the app nav, no header-chrome height subtraction. The
+    // app nav (z-index 50) floats above; the AppShell wallpaper layer is
+    // fully occluded.
+    //
+    // Inline width/height/top/left enforce viewport dimensions as a
+    // belt-and-suspenders override:
+    //   - 100vw / 100vh — wins over any ancestor max-width clamp.
+    //   - top:0 / left:0 — wins over any inherited `top: var(--nav-h)` from
+    //     a stale legacy wrapper (we never want the published-premium mount
+    //     to start below the nav; the receiver is the owner of the surface
+    //     that the nav floats over).
     return (
       <div
         className="dpv1ReceiverMount"
-        style={{ width: "100vw", height: "100vh" }}
+        style={{ width: "100vw", height: "100vh", top: 0, left: 0 }}
         data-shell={layout.shellId}
         data-premium-owner="true"
+        data-premium-surface="full-viewport"
         data-stage-w={layout.stage.w}
         data-stage-h={layout.stage.h}
         data-target-envelope-w={DESKTOP_TARGET_ENVELOPE.w}
