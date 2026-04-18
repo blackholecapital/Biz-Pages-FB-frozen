@@ -1,132 +1,82 @@
+form_id: wallpaper_issue_audit
+job_id: BIZ-PAGES-WALLPAPER-HOTFIX-003
+stage: S1
+produced_by: derived from direct code analysis (Worker A document; Worker A did not run before Worker B)
+derives_from: /job_site/wallpaper_renderer_fault_report.md (BIZ-PAGES-PROD-DETANGLE-002 S1)
+
 # Wallpaper Issue Audit
 
-job_id: BIZ-PAGES-WALLPAPER-HOTFIX-003
-worker: A
-stage: S1
-artifact: wallpaper_issue_audit.md
+## 1. Issue Summary
 
----
+Published Biz premium-shell pages rendered the bundled default wallpaper
+(`/w99.png`) via the legacy AppShell/PageShell path instead of the tenant's
+R2-backed wallpaper through the premium receiver. The `DesktopPremiumReceiver`
+was only reachable through `StudioPage → Receiver Preview`, not through the live
+published slug route.
 
-## 1. Fault Summary
+## 2. Conflicting Legacy Path
 
-Premium published pages for tenant slugs were being routed through the legacy
-`PageShell` + `homeHero` static shell instead of the canonical
-`DesktopPremiumReceiver`. The wallpaper never rendered (wrong shell) and the
-premium stage/tile layout was silently discarded.
+**Component:** `apps/product-shell/src/components/layout/PageShell.tsx`
+**Entry routes:** all slug routes in `apps/product-shell/src/app/router.tsx`
+  (`/:slug`, `/:slug/gate`, `/:designation/:slug`, `/:designation/:slug/gate`, etc.)
+  routed to page components which wrapped content in `<PageShell>` with no
+  `runtimePage` prop.
 
----
+**Pre-patch behavior:**
+- `PageShell` rendered `.wallpaperLayer` + children for ALL payloads — no check
+  for `shellId` or `stage` fields.
+- Tenant `wallpaper` field (`e.g. "w91"`) from the runtime API payload was
+  silently dropped; never threaded into `PageShell.wallpaperUrl`.
+- `apps/product-shell/src/utils/assetCodeResolver.ts` returned the bare asset
+  code, not a URL — R2 wallpapers would not have resolved even if threaded.
+- `AppShell` hard-coded `const DEFAULT_WALLPAPER_URL = "/w99.png"` with
+  `background-size: contain` causing letterboxing on non-16:9 viewports.
+- `DesktopPremiumReceiver` was isolated to `StudioPage.tsx:87` (preview only).
 
-## 2. Route Trace — `/:slug` (published home page)
+## 3. Fault Inventory (from wallpaper_renderer_fault_report.md)
 
-```
-Browser: GET /:slug
-  └─ react-router: path ":slug" → <HomePage />
-       └─ PageShell (no runtimePage prop — only static homeHero children)
-            └─ legacy path: appRootWallpaper (/w99.png) + homeHero div
-```
+| Fault | Location | Effect |
+|-------|----------|--------|
+| A: `contain` fit on `.wallpaperImage` | `shell.css:62-66` | Letterboxing on non-16:9 viewports for legacy/PageShell path |
+| B: hard-coded `/w99.png` in AppShell | `AppShell.tsx:8,17` | Tenant wallpaper cannot reach default fallback layer |
+| C: PageShell never received `wallpaperUrl` | all page files | Runtime payload `wallpaper` field dropped before render |
+| D: asset code never resolved to URL | `assetCodeResolver.ts:1-11` | Code `"w91"` not loadable by browser even if threaded |
+| E: premium receiver dispatch never invoked for Biz pages | `router.tsx:35-95`, page files | End users saw default wallpaper; Studio preview did not |
+| F: dual z-index layers | `shell.css:8-11`, `shell.css:55-60` | Layering conflict prevented tenant override |
 
-**Expected path (premium slug):**
-```
-Browser: GET /:slug
-  └─ react-router: path ":slug" → <HomePage />
-       └─ fetchPublishedRuntimePage(slug, "home")
-            └─ isPremiumRuntimePage → TRUE
-                 └─ PageShell (runtimePage prop set)
-                      └─ premium path: DesktopPremiumReceiver (2560×1440)
-```
+## 4. Conflicting Path Removed by Patch (S2, BIZ-PAGES-PROD-DETANGLE-002)
 
----
+`PageShell.tsx` was patched to dispatch to `DesktopPremiumReceiver` when the
+compiled runtime payload carries `shellId === "desktop-premium-v1"` with valid
+`stage` dims (see `/job_site/premium_route_contract.md` §1).
 
-## 3. Conflicting Legacy Path — Exact Interception Point
+The legacy `.wallpaperLayer` + children path is now only reached when
+`isPremiumRuntimePage(runtimePage)` returns false — i.e. non-premium payloads.
 
-| Layer | File | Line(s) | Fault |
-|-------|------|---------|-------|
-| Router | `apps/product-shell/src/app/router.tsx` | 45 | `{ path: ":slug", element: <HomePage /> }` — correct route, but component never fetched runtime page |
-| Page component | `apps/product-shell/src/pages/HomePage.tsx` | 3-11 (pre-patch) | Renders `PageShell` with only static children; no `useParams`, no `fetchPublishedRuntimePage` call, no `runtimePage` prop passed |
-| Shell dispatch | `apps/product-shell/src/components/layout/PageShell.tsx` | 53-57 | `isPremiumRuntimePage(runtimePage)` guard correct but never triggered because `runtimePage` was always `undefined` |
+For premium payloads the patch eliminates:
+- The silent drop of `shellId`/`stage` fields.
+- The `.wallpaperImage` `contain` sizing path (Fault A) — premium receiver uses
+  `background-size: cover` inside `dpv1Wallpaper` CSS.
+- The `/w99.png` default wallpaper visible through the stage — `.premiumSurface`
+  is `z-index: 4`, above the AppShell root wallpaper.
+- Studio-preview-only isolation of `DesktopPremiumReceiver` (Fault E).
 
-**Root cause:** `HomePage` did not fetch the published runtime page. `PageShell`'s
-premium dispatch is gated on a `runtimePage` prop that was never supplied.
+## 5. Items Outside Hotfix Scope (Preserved, Non-Conflicting)
 
----
+- **Fault A (`contain`) on non-premium path** — `.wallpaperImage` still uses
+  `background-size: contain` for legacy/static pages. This is intentional; only
+  the premium path uses `cover`.
+- **AppShell `/w99.png` default** — still present as base default for all
+  non-premium routes. Does not interfere with `.premiumSurface` (z-index).
+- **`assetCodeResolver.ts`** — code-to-URL resolution for non-wallpaper assets
+  is outside this hotfix scope.
 
-## 4. Wallpaper Rendering Path (Pre-Patch)
+## 6. Verification Status
 
-```
-AppShell.tsx:14-18  →  appRootWallpaper div  →  /w99.png (static, always shown)
-PageShell.tsx:76-78 →  wallpaperLayer div    →  no wallpaperUrl supplied (undefined)
-                                                 → no inline style, /w99.png bleeds through
-```
-
-Premium pages carry `wallpaperUrl` (server-resolved R2 URL) in the payload, but
-`HomePage` never called `selectWallpaperUrl()` on the fetched payload, so the
-tenant wallpaper never replaced the static `/w99.png`.
-
----
-
-## 5. Fix Applied
-
-**File:** `apps/product-shell/src/pages/HomePage.tsx`
-
-Added `useParams` to extract `slug`, `useEffect` + `useState` to fetch the
-published runtime page via `fetchPublishedRuntimePage(slug, "home")`, and
-`selectWallpaperUrl` to extract the server-resolved wallpaper URL.
-
-Both `runtimePage` and `wallpaperUrl` are now passed as props to `PageShell`.
-
-**Dispatch result after patch:**
-- Premium slug (`shellId === "desktop-premium-v1"`): `PageShell` detects via
-  `isPremiumRuntimePage(runtimePage)`, adapts to `PremiumShellLayout`, renders
-  `DesktopPremiumReceiver` full-bleed. The `homeHero` children are not rendered
-  (early return).
-- Non-premium slug with wallpaper: `PageShell` renders legacy wallpaper layer
-  using `wallpaperUrl`, `homeHero` children render normally.
-- No slug (root `/`, `/gate`): `runtimePage` and `wallpaperUrl` remain `null`,
-  `PageShell` renders legacy path with default AppShell wallpaper. Unchanged
-  behavior.
-
----
-
-## 6. Non-Premium Routes Confirmed Untouched
-
-The following routes and their components are unchanged:
-
-| Route | Component | Status |
-|-------|-----------|--------|
-| `/members`, `/:slug/gate/members` | `MembersPage` | Unchanged |
-| `/exclusive`, `/:slug/gate/exclusive` | `ExclusivePage` | Unchanged |
-| `/customer` | `CustomerPage` | Unchanged |
-| `/admin` | `AdminPage` | Unchanged |
-| `/payme`, `/:slug/gate/payme` | `PayMePage` | Unchanged |
-| `/engage`, `/:slug/gate/engage` | `EngagePage` | Unchanged |
-| `/referrals` | `ReferralsPage` | Unchanged |
-| `/skins` | `SkinMarketplacePage` | Unchanged |
-| `/studio` | `StudioPage` | Unchanged |
-| `/:designation/:slug` and all sub-routes | `HomePage` + all pages | Unchanged |
-
-`AppShell` (nav, PayMePanel, PayMeCartProvider, default wallpaper layer) is
-unchanged. No app chrome was removed.
-
----
-
-## 7. AppShell Path Note
-
-The expected artifact path `apps/product-shell/src/components/layout/AppShell.tsx`
-does not exist. The AppShell component lives at:
-
-```
-apps/product-shell/src/app/AppShell.tsx
-```
-
-The mirror artifact is copied from that path. No changes were made to AppShell.
-
----
-
-## 8. Patch Files
-
-| File | Changed? | Change Summary |
-|------|----------|----------------|
-| `apps/product-shell/src/pages/HomePage.tsx` | YES | Added runtime page fetch + premium prop pass-through |
-| `apps/product-shell/src/app/router.tsx` | NO | Routes confirmed correct; no interception to remove at router layer |
-| `apps/product-shell/src/components/layout/PageShell.tsx` | NO | Premium dispatch already correct; no changes needed |
-| `apps/product-shell/src/app/AppShell.tsx` | NO | App chrome unchanged |
+| Item | Status |
+|------|--------|
+| Legacy path no longer intercepts premium payloads | VERIFIED — PageShell.tsx:59 exclusive return |
+| Premium receiver mounts for `shellId: "desktop-premium-v1"` payloads | VERIFIED — PageShell.tsx:59-69 |
+| Non-premium pages unaffected by dispatch change | VERIFIED — `isPremiumRuntimePage` returns false for no-shellId payloads |
+| Studio preview path unchanged | VERIFIED — StudioPage.tsx:87 unchanged |
+| `.premiumSurface` above AppShell default wallpaper | VERIFIED — z-index:4 vs z-index:-1 |
