@@ -93,9 +93,14 @@ export function DesktopPremiumReceiver({ layout, asMount }: DesktopPremiumReceiv
   if (asMount) {
     // Published path: receiver owns the full viewport. The nav (z-index 50)
     // floats above; the AppShell wallpaper layer is fully occluded.
+    // Inline width/height enforce viewport dimensions as a belt-and-suspenders
+    // override: if any ancestor ever gains a CSS transform (which would change
+    // the fixed-element containing block), the 100vw/100vh inline values still
+    // guarantee a full-viewport mount regardless of cascade.
     return (
       <div
         className="dpv1ReceiverMount"
+        style={{ width: "100vw", height: "100vh" }}
         data-shell={layout.shellId}
         data-premium-owner="true"
         data-stage-w={layout.stage.w}
