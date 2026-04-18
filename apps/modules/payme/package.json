@@ -24,6 +24,7 @@
   "main": "./src/index.jsx",
   "exports": {
     ".": "./src/index.jsx",
-    "./services/usdcTransfer": "./src/services/usdcTransfer.js"
+    "./services/usdcTransfer": "./src/services/usdcTransfer.js",
+    "./lib/wagmi": "./src/lib/wagmi.js"
   }
 }
