@@ -1,4 +1,5 @@
 import { normalizePageSpec } from "./runtime-schema.js";
+import { getAssetBaseUrl, resolveAssetUrl } from "./runtime-r2.js";
 
 const STUDIO_PAGE_KEY = {
   home: "gate",
@@ -55,7 +56,7 @@ export function compileMobileBlocks(blocks) {
   });
 }
 
-export function compileRuntimePage(page, pageSpec, source, { slug } = {}) {
+export function compileRuntimePage(page, pageSpec, source, { slug, env } = {}) {
   const normalized = normalizePageSpec(pageSpec, page);
   if (!normalized) return null;
 
@@ -66,12 +67,18 @@ export function compileRuntimePage(page, pageSpec, source, { slug } = {}) {
   // forward the shell metadata so the gateway can use the canonical 2560×1440 stage.
   const isPremium = normalized.shellId === "desktop-premium-v1";
 
+  // Mirror the worker-fronted asset host into the payload so the client
+  // can fall back to the same resolver rule for any code the server did
+  // not pre-resolve. Empty string is omitted to keep the payload tight.
+  const assetBaseUrl = getAssetBaseUrl(env);
+
   const result = {
     ok: true,
     version: 2,
     page,
     source,
     ...(slug ? { slug } : {}),
+    ...(assetBaseUrl ? { assetBaseUrl } : {}),
     ...(isPremium
       ? {
           shellId: "desktop-premium-v1",
@@ -106,11 +113,31 @@ export function compileRuntimePage(page, pageSpec, source, { slug } = {}) {
     };
   }
 
-  if (normalized.wallpaper) result.wallpaper = normalized.wallpaper;
-  if (normalized.skin) result.skin = normalized.skin;
-  if (normalized.gif) result.gif = normalized.gif;
+  if (normalized.wallpaper) {
+    result.wallpaper = normalized.wallpaper;
+    const wallpaperUrl = resolveAssetUrl(normalized.wallpaper, env);
+    if (wallpaperUrl) result.wallpaperUrl = wallpaperUrl;
+  }
+  if (normalized.skin) {
+    result.skin = normalized.skin;
+    const skinUrl = resolveAssetUrl(normalized.skin, env);
+    if (skinUrl) result.skinUrl = skinUrl;
+  }
+  if (normalized.gif) {
+    result.gif = normalized.gif;
+    const gifUrl = resolveAssetUrl(normalized.gif, env);
+    if (gifUrl) result.gifUrl = gifUrl;
+  }
   if (Array.isArray(normalized.exclusiveTiles) && normalized.exclusiveTiles.length) {
-    result.exclusiveTiles = normalized.exclusiveTiles;
+    result.exclusiveTiles = normalized.exclusiveTiles.map((tile) => {
+      // Operator-supplied imageUrl wins over code resolution. Otherwise
+      // resolve the assetCode through the same contract used by the
+      // server side, so the client never has to invent a URL.
+      if (tile.imageUrl) return tile;
+      const resolved = tile.assetCode ? resolveAssetUrl(tile.assetCode, env) : "";
+      if (!resolved) return tile;
+      return { ...tile, imageUrl: resolved };
+    });
   }
 
   return result;

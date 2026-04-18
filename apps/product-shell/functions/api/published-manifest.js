@@ -1,5 +1,5 @@
 import { bad, json, sanitize } from "../_lib/runtime-schema.js";
-import { objectExists, readBucketJson } from "../_lib/runtime-r2.js";
+import { getAssetBaseUrl, objectExists, readBucketJson } from "../_lib/runtime-r2.js";
 
 const PAGES = ["home", "members", "access", "tier-2"];
 const DEMO_PAGE_KEY = {
@@ -49,11 +49,14 @@ export async function onRequestGet({ request, env }) {
     };
   }
 
+  const assetBaseUrl = getAssetBaseUrl(env);
+
   return json({
     ok: true,
     version: 2,
     slug,
     pages,
+    ...(assetBaseUrl ? { assetBaseUrl } : {}),
     mobile: {
       editableNamespace: "src/mobile",
       notes: "Mobile overlay layout is isolated into dedicated files for separate tuning."
