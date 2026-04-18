@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useMemo, useReducer } from "react";
+import { connectWallet as canonicalConnectWallet } from "../wallet/connectWallet";
+import { signMessage as canonicalSignMessage } from "../wallet/signMessage";
 
 export type DemoGateState = {
   walletConnected: boolean;
@@ -86,46 +88,16 @@ export function DemoGateProvider({ children }: { children: React.ReactNode }) {
   const actions: Actions = useMemo(
     () => ({
       connectWallet: async () => {
-        try {
-          const eth = (window as any)?.ethereum;
-          if (!eth?.request) {
-            dispatch({ type: "CONNECT_WALLET", address: "0xDEMO...WALLET" });
-            return true;
-          }
-          const accs: string[] = await eth.request({ method: "eth_requestAccounts" });
-          dispatch({ type: "CONNECT_WALLET", address: accs?.[0] });
-          return true;
-        } catch {
-          // user rejected / unavailable
-          return false;
-        }
+        const result = await canonicalConnectWallet();
+        if (!result.ok) return false;
+        dispatch({ type: "CONNECT_WALLET", address: result.address });
+        return true;
       },
       signMessage: async () => {
-        try {
-          const eth = (window as any)?.ethereum;
-          if (!eth?.request) {
-            dispatch({ type: "SIGN_MESSAGE" });
-            return true;
-          }
-
-          let accounts: string[] = await eth.request({ method: "eth_accounts" });
-          if (!accounts?.length) {
-            await eth.request({ method: "eth_requestAccounts" });
-            accounts = await eth.request({ method: "eth_accounts" });
-          }
-
-          const address = accounts?.[0];
-          if (!address) return false;
-
-          const msg = "Sign Message to Enter Pages";
-          await eth.request({ method: "personal_sign", params: [msg, address] });
-
-          dispatch({ type: "SIGN_MESSAGE" });
-          return true;
-        } catch {
-          // user rejected / unavailable
-          return false;
-        }
+        const result = await canonicalSignMessage();
+        if (!result.ok) return false;
+        dispatch({ type: "SIGN_MESSAGE" });
+        return true;
       },
       simulateSignedMessage: () => dispatch({ type: "SIM_SIGNED" }),
       unlockTier1: () => dispatch({ type: "UNLOCK_T1" }),

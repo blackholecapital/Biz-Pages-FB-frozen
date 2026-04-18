@@ -1,22 +1,16 @@
-import { createConfig, http } from 'wagmi'
-import { mainnet, polygon, arbitrum, optimism, base } from 'wagmi/chains'
-import { injected, walletConnect } from 'wagmi/connectors'
+// Re-export of the canonical wagmi config. Do NOT redeclare `createConfig`
+// here. The single source of truth lives at:
+//   apps/product-shell/src/wallet/wagmiConfig.shared.js
+// and is owned by `apps/product-shell/src/wallet/` (see README in that dir).
+//
+// The relative path crosses app boundaries inside the monorepo; Vite's
+// default resolver handles it because both trees are part of the same
+// working tree. If the module is later extracted into its own deploy,
+// swap this path for a published package import without touching callers.
 
-const wcProjectId = import.meta.env.VITE_WC_PROJECT_ID
-
-export const wagmiConfig = createConfig({
-  chains: [mainnet, polygon, arbitrum, optimism, base],
-  transports: {
-    [mainnet.id]: http(),
-    [polygon.id]: http(),
-    [arbitrum.id]: http(),
-    [optimism.id]: http(),
-    [base.id]: http(),
-  },
-  connectors: [
-    injected({ shimDisconnect: true }),
-    ...(wcProjectId
-      ? [walletConnect({ projectId: wcProjectId, showQrModal: true })]
-      : []),
-  ],
-})
+export {
+  wagmiConfig,
+  buildWagmiConfig,
+  WALLET_CHAINS,
+  WC_PROJECT_ID_ENV_KEY,
+} from '../../../../product-shell/src/wallet/wagmiConfig.shared.js'
