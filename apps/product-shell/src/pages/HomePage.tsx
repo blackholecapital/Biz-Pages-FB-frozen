@@ -5,7 +5,7 @@ import {
   fetchPublishedRuntimePage,
   selectWallpaperUrl,
 } from "../runtime/publishedClient";
-import type { PublishedRuntimePage } from "../runtime/types";
+import { isPremiumRuntimePage, type PublishedRuntimePage } from "../runtime/types";
 
 type RouteParams = { slug?: string; designation?: string };
 
@@ -13,6 +13,7 @@ export function HomePage() {
   const { slug } = useParams<RouteParams>();
   const [runtimePage, setRuntimePage] = useState<PublishedRuntimePage | null>(null);
   const [wallpaperUrl, setWallpaperUrl] = useState<string | null>(null);
+  const isPremiumRuntime = isPremiumRuntimePage(runtimePage);
 
   useEffect(() => {
     if (!slug) {
@@ -33,9 +34,11 @@ export function HomePage() {
 
   return (
     <PageShell runtimePage={runtimePage} wallpaperUrl={wallpaperUrl ?? undefined}>
-      <div className="homeHero">
-        <h1 className="homeHeroTitle">Welcome Home</h1>
-      </div>
+      {isPremiumRuntime ? null : (
+        <div className="homeHero">
+          <h1 className="homeHeroTitle">Welcome Home</h1>
+        </div>
+      )}
     </PageShell>
   );
 }
