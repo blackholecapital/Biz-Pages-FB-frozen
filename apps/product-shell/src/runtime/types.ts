@@ -56,9 +56,22 @@ export type PublishedRuntimePage = {
     key: string;
   };
   slug?: string;
+  /**
+   * Worker-fronted asset host mirrored from the server env. When present,
+   * client-side fallback URL composition MUST target this host so the
+   * client and server resolvers produce identical URLs. See
+   * /job_site/resolver_contract_spec.md §1.2.
+   */
+  assetBaseUrl?: string;
   wallpaper?: string;
+  /** Server-resolved wallpaper URL. Clients consume this verbatim. */
+  wallpaperUrl?: string;
   skin?: string;
+  /** Server-resolved skin URL. */
+  skinUrl?: string;
   gif?: string;
+  /** Server-resolved gif URL. */
+  gifUrl?: string;
   desktop: RuntimePageLayout;
   exclusiveTiles?: RenderedExclusiveTile[];
 
@@ -141,6 +154,12 @@ export type PublishedRuntimeManifest = {
   ok: true;
   version: 2;
   slug: string;
+  /**
+   * Worker-fronted asset host mirrored from the server env. Same field as
+   * on `PublishedRuntimePage` — kept on the manifest so probes that don't
+   * fetch a per-page payload still know where to resolve assets.
+   */
+  assetBaseUrl?: string;
   pages: Record<
     string,
     {

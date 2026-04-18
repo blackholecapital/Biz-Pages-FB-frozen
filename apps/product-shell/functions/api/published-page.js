@@ -36,7 +36,7 @@ export async function onRequestGet({ request, env }) {
           compileRuntimePage(page, normalizedDemo, {
             mode: "published-page",
             key: demoKey
-          }, { slug }),
+          }, { slug, env }),
           200,
           { "x-runtime-source": demoKey }
         );
@@ -54,7 +54,7 @@ export async function onRequestGet({ request, env }) {
         compileRuntimePage(page, normalized, {
           mode: "published-page",
           key: pageKey
-        }, { slug }),
+        }, { slug, env }),
         200,
         { "x-runtime-source": pageKey }
       );
@@ -73,7 +73,7 @@ export async function onRequestGet({ request, env }) {
       compileRuntimePage(page, mapped, {
         mode: "legacy-bundle",
         key: legacyKey
-      }, { slug }),
+      }, { slug, env }),
       200,
       { "x-runtime-source": legacyKey }
     );
