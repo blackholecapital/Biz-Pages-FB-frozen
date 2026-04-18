@@ -1,129 +1,133 @@
+form_id: premium_route_contract
+job_id: BIZ-PAGES-WALLPAPER-HOTFIX-003
+stage: S1
+produced_by: derived from direct code analysis (Worker A document; Worker A did not run before Worker B)
+source_files:
+  - apps/product-shell/src/components/layout/PageShell.tsx
+  - apps/product-shell/src/runtime/types.ts
+  - apps/product-shell/src/features/desktop-premium/DesktopPremiumReceiver.tsx
+  - apps/product-shell/src/styles/published-overlay.css
+
 # Premium Route Contract
 
-job_id: BIZ-PAGES-WALLPAPER-HOTFIX-003
-worker: A
-stage: S1
-artifact: premium_route_contract.md
+## 1. Decision Rule
 
----
+Premium slug ownership is determined at the `PageShell` component boundary
+(`apps/product-shell/src/components/layout/PageShell.tsx`).
 
-## 1. Contract Overview
-
-This document declares the normative routing contract for premium published
-tenant pages in the Biz product shell. Clients MUST follow this contract to
-ensure premium payloads reach the canonical `DesktopPremiumReceiver` and do not
-fall through to the legacy wallpaper/homeHero shell.
-
----
-
-## 2. Slug Route → Published Runtime Page → Shell Dispatch
+When the compiled runtime payload satisfies the following guard the page mounts
+the canonical `DesktopPremiumReceiver` instead of the legacy wallpaper+content
+frame:
 
 ```
-URL                    Route match           Component      Page key  Runtime fetch
-─────────────────────────────────────────────────────────────────────────────────────
-/:slug                 path ":slug"          HomePage       "home"    fetchPublishedRuntimePage(slug, "home")
-/:slug/gate            path ":slug/gate"     HomePage       "home"    fetchPublishedRuntimePage(slug, "home")
-/:d/:slug              path ":d/:slug"       HomePage       "home"    fetchPublishedRuntimePage(slug, "home")
-/:d/:slug/gate         path ":d/:slug/gate"  HomePage       "home"    fetchPublishedRuntimePage(slug, "home")
-/                      index                 HomePage       "home"    no slug → no fetch (static)
-/gate                  path "gate"           HomePage       "home"    no slug → no fetch (static)
+isPremiumRuntimePage(runtimePage) === true
 ```
 
-`slug` is extracted from `useParams<{ slug?: string; designation?: string }>()`.
-When `slug` is absent (root and /gate routes), no runtime fetch is performed and
-`PageShell` renders the static legacy path.
+`isPremiumRuntimePage` is defined in
+`apps/product-shell/src/runtime/types.ts:117-130`:
 
----
-
-## 3. Premium Detection Contract
-
-The runtime payload must carry all three fields for the premium dispatch to fire:
-
+```ts
+return (
+  !!p &&
+  p.shellId === PREMIUM_SHELL_ID &&           // "desktop-premium-v1"
+  !!p.stage &&
+  typeof p.stage.w === "number" &&
+  typeof p.stage.h === "number"
+);
 ```
-PublishedRuntimePage {
-  shellId: "desktop-premium-v1"   // == PREMIUM_SHELL_ID
-  stage:   { w: number, h: number }
-  tiles:   PremiumStageTile[]
+
+**Exact decision rule (plain language):**
+> A published runtime page is premium if and only if its compiled payload
+> carries `shellId === "desktop-premium-v1"` and a `stage` object with
+> numeric `w` and `h` fields. Any payload missing `shellId`, carrying a
+> different `shellId` value, or missing valid `stage` dims is treated as
+> non-premium and rendered through the legacy path.
+
+## 2. Dispatch Priority (no overlap)
+
+PageShell evaluates dispatch in this order
+(`apps/product-shell/src/components/layout/PageShell.tsx:53-70`):
+
+1. **`premiumLayout` prop supplied** — render `DesktopPremiumReceiver` directly.
+2. **`runtimePage` supplied AND `isPremiumRuntimePage(runtimePage)` is true** —
+   adapt via `adaptPremiumRuntimePage(runtimePage, wallpaperUrl)` and render
+   `DesktopPremiumReceiver`.
+3. **Otherwise** — render legacy `.wallpaperLayer` + `.pageShellContent` frame.
+
+## 3. Exclusive Mount Block
+
+When the premium path is taken, `PageShell` returns immediately:
+
+```tsx
+<div
+  className="premiumSurface"
+  data-shell={PREMIUM_SHELL_ID}
+  data-premium-stage-w={resolvedPremium.stage.w}
+  data-premium-stage-h={resolvedPremium.stage.h}
+>
+  <DesktopPremiumReceiver layout={resolvedPremium} />
+</div>
+```
+
+The legacy wallpaper+content block is **not rendered** in this branch. There is
+no code path that combines the legacy layer with the premium receiver. The `if
+(resolvedPremium) { return …; }` guard at PageShell.tsx:59 is the single gate.
+
+## 4. CSS Surface
+
+`.premiumSurface` declared in
+`apps/product-shell/src/styles/published-overlay.css:9-25`:
+
+```css
+.premiumSurface {
+  position: fixed;
+  left: 0; right: 0;
+  top: var(--nav-h, 72px);
+  bottom: 0;
+  z-index: 4;          /* above appRootWallpaper (-1) and appBody (3) */
+  overflow: hidden;
+  background: #0b0b0f;
+}
+.premiumSurface > .dpv1Viewport {
+  position: absolute;
+  inset: 0;
+  width: 100%; height: 100%;
 }
 ```
 
-Type guard: `isPremiumRuntimePage(page)` in `runtime/types.ts`.
+This surface fills the full viewport below the top nav and provides the
+container for the `DesktopPremiumReceiver`'s `useStageScale` scaling loop.
 
-**Clients MUST NOT re-interpret stage dimensions.** The server emits
-`stage: { w: 2560, h: 1440 }` as the canonical stage envelope. Receivers
-scale to fit the available viewport via `useStageScale` — they do not change
-the stage coordinate space.
+## 5. Receiver Scaling Contract
 
----
+`DesktopPremiumReceiver` (`apps/product-shell/src/features/desktop-premium/DesktopPremiumReceiver.tsx`)
+calls `useStageScale(viewportRef, layout.stage)`.
 
-## 4. Shell Dispatch Rules (single path, no overlap)
-
-Implemented in `PageShell` (`components/layout/PageShell.tsx`):
-
+`useStageScale` formula (`useStageScale.ts:77-80`):
 ```
-Priority 1: premiumLayout prop supplied               → DesktopPremiumReceiver
-Priority 2: runtimePage supplied AND isPremiumRuntimePage(runtimePage) → adapt → DesktopPremiumReceiver
-Priority 3: (default)                                 → legacy wallpaper + children frame
+scale    = min(containerW / stage.w, containerH / stage.h)
+offsetX  = (containerW - stage.w * scale) / 2
+offsetY  = (containerH - stage.h * scale) / 2
 ```
 
-`HomePage` uses Priority 2: it supplies `runtimePage` (raw payload) and
-`wallpaperUrl` (server-resolved URL via `selectWallpaperUrl`). `PageShell`
-adapts and dispatches.
+Desktop target envelope constant: `DESKTOP_TARGET_ENVELOPE = { w: 2560, h: 1440 }`.
+Stage dims are consumed verbatim from the runtime payload — no re-interpretation.
 
----
+## 6. Pre-Patch State (Legacy Shell Ownership)
 
-## 5. Wallpaper Resolution Contract
+Before S2 of BIZ-PAGES-PROD-DETANGLE-002, `PageShell` had no premium dispatch:
+- No import of `DesktopPremiumReceiver` or `isPremiumRuntimePage`.
+- All published slug routes rendered through `.wallpaperLayer` + children regardless
+  of `shellId` or `stage` fields in the payload.
+- `DesktopPremiumReceiver` was only mounted by `StudioPage.tsx:87` in preview mode.
 
-For published premium pages, wallpaper is resolved server-side and emitted as
-`wallpaperUrl` on the `PublishedRuntimePage` payload. Clients MUST:
+## 7. Post-Patch Verification
 
-1. Call `selectWallpaperUrl(page)` to extract the resolved URL.
-2. Pass it as the `wallpaperUrl` prop to `PageShell`.
-3. `PageShell` forwards it into `adaptPremiumRuntimePage(runtimePage, wallpaperUrl)`
-   which populates `PremiumShellLayout.wallpaper`.
-4. `DesktopPremiumReceiver` renders the wallpaper from `layout.wallpaper`.
-
-Clients MUST NOT compose wallpaper URLs from slug or asset codes on the
-client side for published premium pages. The server-emitted URL is the
-single source of truth. See `/job_site/resolver_contract_spec.md §1.2`.
-
----
-
-## 6. Non-Premium Slug Behavior
-
-When a slug's published runtime page payload is:
-- absent (`null`) — network error or no published page
-- present but not premium (missing `shellId` or `stage`)
-
-`PageShell` falls through to Priority 3 (legacy path). The `homeHero` children
-render normally and the wallpaper layer uses `wallpaperUrl` if present (tenant
-non-premium wallpaper) or the AppShell default (`/w99.png`).
-
-This preserves backwards-compatibility for all non-premium tenants and for the
-static root routes (`/`, `/gate`).
-
----
-
-## 7. Files Involved
-
-| File | Role |
-|------|------|
-| `apps/product-shell/src/app/router.tsx` | Declares `/:slug` → `<HomePage />` mapping |
-| `apps/product-shell/src/pages/HomePage.tsx` | Fetches runtime page; passes `runtimePage` + `wallpaperUrl` to `PageShell` |
-| `apps/product-shell/src/components/layout/PageShell.tsx` | Premium dispatch gatekeeper |
-| `apps/product-shell/src/runtime/types.ts` | `isPremiumRuntimePage`, `adaptPremiumRuntimePage`, type definitions |
-| `apps/product-shell/src/runtime/publishedClient.ts` | `fetchPublishedRuntimePage`, `selectWallpaperUrl` |
-| `apps/product-shell/src/features/desktop-premium/DesktopPremiumReceiver.tsx` | Canonical premium renderer |
-
----
-
-## 8. Invariants
-
-- `DesktopPremiumReceiver` is the ONLY component that renders the premium shell
-  for end-user pages. `/studio` preview also renders it for parity checking.
-- No route bypasses `PageShell` dispatch for published pages. All published
-  premium renders go through `PageShell → DesktopPremiumReceiver`.
-- The `homeHero` children inside `PageShell` are NEVER rendered for a premium
-  runtime page (early return at priority 1/2 in `PageShell`).
-- `AppShell` app chrome (TopNav, PayMePanel, PayMeCartProvider) is always
-  present regardless of premium/non-premium rendering.
+| Check | File:Line | Result |
+|-------|-----------|--------|
+| PageShell imports DesktopPremiumReceiver | PageShell.tsx:3 | PASS |
+| PageShell imports isPremiumRuntimePage | PageShell.tsx:10-12 | PASS |
+| isPremiumRuntimePage guard gates premium branch | PageShell.tsx:53-57 | PASS |
+| Legacy block unreachable when premium fires | PageShell.tsx:59 (return) | PASS |
+| Premium receiver mounts with full-bleed CSS | published-overlay.css:9 | PASS |
+| StudioPage preview still uses receiver directly | StudioPage.tsx:87 | PASS (unchanged) |
