@@ -6,7 +6,6 @@ import type {
   PublishedRuntimePage,
 } from "../../runtime/types";
 import {
-  PREMIUM_SHELL_ID,
   adaptPremiumRuntimePage,
   isPremiumRuntimePage,
 } from "../../runtime/types";
@@ -18,8 +17,8 @@ type PageShellProps = {
   wallpaperUrl?: string;
   /**
    * Pre-adapted premium layout. When present, the shell renders the
-   * canonical `DesktopPremiumReceiver` full-bleed and does not render the
-   * legacy wallpaper/content frame. This is the single premium render path.
+   * canonical `DesktopPremiumReceiver` as the owning surface and does not
+   * render the legacy wallpaper/content frame.
    */
   premiumLayout?: PremiumShellLayout | null;
   /**
@@ -32,17 +31,20 @@ type PageShellProps = {
 };
 
 /**
- * Legacy / static layout surface, now extended with premium dispatch.
+ * Legacy / static layout surface, extended with premium dispatch.
  *
  * Dispatch rules (single path, no overlap):
- *   1. If `premiumLayout` is supplied, render the canonical premium receiver.
+ *   1. If `premiumLayout` is supplied, render the canonical premium receiver
+ *      as the owning full-viewport surface (`asMount`).
  *   2. Else, if `runtimePage` is supplied AND `isPremiumRuntimePage(runtimePage)`,
  *      adapt it (wallpaper URL resolved via `wallpaperUrl` prop) and render
- *      the canonical premium receiver.
+ *      the canonical premium receiver as the owning surface (`asMount`).
  *   3. Otherwise, render the legacy wallpaper + content frame.
  *
- * This eliminates the mixed legacy/static + premium overlay behavior
- * inventoried in `runtime_parity_matrix.md` §1 and §2.
+ * For premium paths (1 and 2) the receiver uses `asMount` so it positions
+ * itself as a fixed full-viewport surface (z-index 4). The AppShell default
+ * wallpaper (z-index -1) is fully covered; the app nav (z-index 50) renders
+ * on top. No competing wallpaper or content layers remain.
  */
 export function PageShell({
   children,
@@ -57,16 +59,8 @@ export function PageShell({
       : null);
 
   if (resolvedPremium) {
-    return (
-      <div
-        className="premiumSurface"
-        data-shell={PREMIUM_SHELL_ID}
-        data-premium-stage-w={resolvedPremium.stage.w}
-        data-premium-stage-h={resolvedPremium.stage.h}
-      >
-        <DesktopPremiumReceiver layout={resolvedPremium} />
-      </div>
-    );
+    // Receiver owns its own full-viewport surface — no wrapper div here.
+    return <DesktopPremiumReceiver layout={resolvedPremium} asMount />;
   }
 
   return (

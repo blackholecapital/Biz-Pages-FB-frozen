@@ -1,115 +1,157 @@
-form_id: premium_surface_ownership
-job_id: BIZ-PAGES-WALLPAPER-HOTFIX-003
-stage: S2
-produced_by: derived from direct code analysis (Worker A document; Worker A did not run before Worker B)
-source_files:
-  - apps/product-shell/src/components/layout/PageShell.tsx
-  - apps/product-shell/src/features/desktop-premium/DesktopPremiumReceiver.tsx
-  - apps/product-shell/src/features/desktop-premium/DesktopPremiumShell.tsx
-  - apps/product-shell/src/features/desktop-premium/desktop-premium.css
-  - apps/product-shell/src/features/desktop-premium/shellConfig.ts
-  - apps/product-shell/src/styles/published-overlay.css
-  - apps/product-shell/src/styles/shell.css
-  - apps/product-shell/src/styles/nav.css
-  - apps/product-shell/src/app/AppShell.tsx
-
 # Premium Surface Ownership
 
-## 1. Controlling Surface for Premium Published Pages
+job_id: BIZ-PAGES-WALLPAPER-HOTFIX-003
+worker: A
+stage: S2
+artifact: premium_surface_ownership.md
 
-`DesktopPremiumReceiver` is the controlling surface for published premium pages.
+---
 
-**Entry path:**
+## 1. Problem: Conflicting Wallpaper Layers
+
+Before this patch, when a premium published slug (`/:slug`) was visited, three
+visual layers were in play simultaneously:
+
+| Layer | Source | CSS | z-index | Covers |
+|-------|--------|-----|---------|--------|
+| AppShell default wallpaper | `AppShell.tsx` → `appRootWallpaper` | `position: fixed; inset: 0; z-index: -1` | -1 | Full viewport incl. nav zone |
+| Legacy nav/content area | `appBody` div | normal flow | auto | Below nav |
+| Premium surface | `PageShell` → `premiumSurface` | `position: fixed; top: var(--nav-h); z-index: 4` | 4 | Below nav only |
+
+The `appRootWallpaper` (`/w99.png`) was always painted in the nav zone
+(`top: 0` to `top: 72px`) because the `premiumSurface` started at
+`top: var(--nav-h, 72px)` and did not cover that region.
+
+The `TopNav` background is `background: transparent` (outer) with
+`background: rgba(10,10,14,.55)` (inner) — semi-transparent. The static
+`/w99.png` wallpaper bled through this transparence, creating a competing
+background in the nav zone distinct from the premium stage's own wallpaper.
+
+Additionally, `published-overlay.css` contained legacy `.publishedOverlay*`
+CSS rules defining an old overlay system (absolute-positioned skin/gif/stage
+layers with a 1400px fixed-width stage) that was never removed. These rules
+were unreferenced in any component but represented a latent conflicting path.
+
+---
+
+## 2. Fix: Receiver as Owning Surface
+
+### 2.1 Structural Change
+
+`DesktopPremiumReceiver` now accepts an `asMount` prop. When `asMount` is
+set (published page path), the receiver renders its own fixed full-viewport
+surface (`dpv1ReceiverMount`) rather than relying on an external wrapper.
+
+**Before (PageShell wrapping):**
 ```
-router.tsx → page component (e.g. HomePage, ExclusivePage)
-  → <PageShell runtimePage={...} wallpaperUrl={...}>
-    → isPremiumRuntimePage(runtimePage) === true
-      → <div className="premiumSurface" ...>
-          <DesktopPremiumReceiver layout={adaptedLayout} />
+PageShell
+  └─ <div className="premiumSurface">   ← external wrapper, top: nav-h
+       └─ <DesktopPremiumReceiver>
+            └─ <div className="dpv1Viewport">
+                 └─ <DesktopPremiumShell>
 ```
 
-`PageShell` returns the `premiumSurface` block exclusively when the premium
-guard fires. No legacy shell content is rendered alongside it.
-
-## 2. Wallpaper Ownership — Premium Stage
-
-Wallpaper for premium published pages is rendered inside the premium stage, not
-as a shell background.
-
-**Ownership chain:**
+**After (receiver owns surface):**
 ```
-DesktopPremiumReceiver (layout.wallpaper → wallpaperUrl prop)
-  → DesktopPremiumShell (wallpaperUrl → inline style on .dpv1Wallpaper)
-    → .dpv1Wallpaper (position: absolute; inset: 0; background-size: cover; z-index: 0)
+PageShell
+  └─ <DesktopPremiumReceiver asMount>   ← no external wrapper
+       └─ <div className="dpv1ReceiverMount">  ← receiver-owned, inset: 0
+            └─ <div className="dpv1Viewport">
+                 └─ <DesktopPremiumShell>
 ```
 
-The wallpaper `backgroundImage` is set via inline style in `DesktopPremiumShell.tsx:73-80`
-using `cfg.wallpaper.fit = "cover"` from `shellConfig.ts:13`. The wallpaper
-node sits inside `.dpv1Stage` (the 2560×1440 CSS-transform-scaled stage div)
-at z-index 0 — it is NOT a viewport-level background.
+### 2.2 CSS — `dpv1ReceiverMount` (added to `desktop-premium.css`)
 
-## 3. Removed Conflicting Layers
+```css
+.dpv1ReceiverMount {
+  position: fixed;
+  inset: 0;              /* top: 0 — covers full viewport including nav zone */
+  z-index: 4;            /* above appRootWallpaper (-1), below TopNav (50) */
+  overflow: hidden;
+  background: #0b0b0f;   /* occludes AppShell default wallpaper entirely */
+}
+.dpv1ReceiverMount > .dpv1Viewport {
+  position: absolute;
+  inset: 0;
+}
+```
 
-The following layers previously owned or competed with wallpaper rendering for
-premium payloads and are no longer active on the premium render path:
+The key difference from the removed `premiumSurface` CSS: `inset: 0` instead
+of `top: var(--nav-h, 72px)`. The full viewport is now owned by the receiver.
 
-### 3.1 PageShell `.wallpaperLayer` + `.wallpaperImage` (REMOVED from premium path)
-- CSS: `shell.css:52-57` (`.wallpaperLayer`: position:absolute; inset:0; z-index:0)
-- CSS: `shell.css:59-65` (`.wallpaperImage`: position:absolute; inset:0;
-  **background-size: contain** — Fault A letterboxing)
-- Status: not rendered for premium payloads. `PageShell.tsx:59` returns the
-  `premiumSurface` block before reaching the legacy wallpaper block.
+### 2.3 z-index Stacking After Patch
 
-### 3.2 PageShell `.pageShellContent` (REMOVED from premium path)
-- CSS: `shell.css:38-43` (padding + max-width layout frame)
-- Status: not rendered for premium payloads.
+| Element | Position | z-index | Visible? |
+|---------|----------|---------|----------|
+| `appRootWallpaper` (`/w99.png`) | fixed, inset: 0 | -1 | **No** — fully occluded by dpv1ReceiverMount |
+| `dpv1ReceiverMount` | fixed, inset: 0 | 4 | Yes — full viewport |
+| `dpv1Viewport` → `dpv1Stage` + wallpaper | absolute, inset: 0 | — | Yes — premium stage fills mount |
+| `TopNav` | fixed, top: 0 | 50 | Yes — floats above premium stage |
 
-### 3.3 AppShell `.appRootWallpaper` default wallpaper (VISUALLY SUPPRESSED)
-- Code: `AppShell.tsx:8` — `const DEFAULT_WALLPAPER_URL = "/w99.png"`
-- CSS: `shell.css:6-12` — `.appRootWallpaper { position:fixed; inset:0; z-index:-1 }`
-- Status: DOM node still rendered (AppShell is always mounted) but visually
-  covered by `.premiumSurface { z-index: 4 }`. The `/w99.png` image is not
-  visible to users on premium pages.
+The AppShell default wallpaper (`/w99.png`) is now completely invisible for
+premium pages. The premium stage's wallpaper (from `layout.wallpaper`, the
+R2 URL emitted by the server) is the sole background.
 
-## 4. Preserved UI Layers
+---
 
-Layers that remain active and visible for premium published pages:
+## 3. Studio Parity Preserved
 
-| Layer | CSS Class | z-index | File | Preserved As |
-|-------|-----------|---------|------|--------------|
-| Top navigation bar | `.topNav` | 50 | nav.css:1-10 | Always above premiumSurface; navigation preserved |
-| Premium surface container | `.premiumSurface` | 4 | published-overlay.css:9-25 | Premium receiver mount |
-| Viewport within surface | `.dpv1Viewport` | — (fills parent) | desktop-premium.css:4-10 | Clips scaled stage |
-| Scaled stage | `.dpv1Stage` | — (absolute) | desktop-premium.css:14-17 | 2560×1440 CSS-transform surface |
-| Wallpaper (stage-space) | `.dpv1Wallpaper` | 0 | desktop-premium.css:19-28 | cover-fit, owns wallpaper |
-| Workspace region | `.dpv1Workspace` | 1 | desktop-premium.css:73-78 | Content area |
-| Left rail chrome | `.dpv1LeftRail` | 2 | desktop-premium.css:53-61 | 300px left chrome |
-| Right rail chrome | `.dpv1RightRail` | 2 | desktop-premium.css:63-71 | 300px right chrome |
-| Header band | `.dpv1Header` | 3 | desktop-premium.css:30-43 | Header above workspace |
-| Tiles layer | `.dpv1TilesLayer` | 4 | desktop-premium.css:86-91 | Stage-space tile container |
+`DesktopPremiumReceiver` without `asMount` (the Studio preview path) is
+unchanged: the component renders `dpv1Viewport` directly, filling whichever
+container the Studio supplies. The Studio's container is a separate fixed div
+(`top: calc(nav-h + 44px)`, not full-viewport) and is unaffected.
 
-## 5. Full z-index Stack for Premium Published Pages
+| Context | asMount | Root element | Positions relative to |
+|---------|---------|-------------|----------------------|
+| Published page | `true` | `dpv1ReceiverMount` (fixed, inset: 0) | Viewport |
+| Studio preview | `false`/absent | `dpv1Viewport` (relative, fills container) | Studio container |
 
-From bottom to top, for a premium published page in the viewport:
+---
 
-| z-index | Layer | Scope | Note |
-|---------|-------|-------|------|
-| -1 | `.appRootWallpaper` | viewport-fixed | `/w99.png`; visually covered by premiumSurface |
-| 0 | `.dpv1Wallpaper` | stage-space | tenant wallpaper, cover-fit — OWNS wallpaper |
-| 1 | `.dpv1Workspace` | stage-space | transparent workspace region |
-| 2 | `.dpv1LeftRail`, `.dpv1RightRail` | stage-space | chrome rails |
-| 3 | `.dpv1Header` | stage-space | header band |
-| 4 | `.premiumSurface` | viewport-fixed | receiver container (parent of dpv1Viewport) |
-| 4 | `.dpv1TilesLayer` | stage-space | tile content above chrome |
-| 50 | `.topNav` | viewport-fixed | navigation always on top |
+## 4. Legacy CSS Removed from `published-overlay.css`
 
-## 6. Verification
+The following rule blocks were removed as conflicting legacy paths:
 
-| Check | Evidence | Result |
-|-------|----------|--------|
-| Premium receiver mounts as top-level controlling surface | PageShell.tsx:59-69 exclusive return; `.premiumSurface` z-index:4 | PASS |
-| Wallpaper rendered inside stage (not shell background) | `dpv1Wallpaper` is child of `dpv1Stage`; cover-fit | PASS |
-| Legacy `.wallpaperLayer`/`.wallpaperImage` not rendered for premium | PageShell return before legacy block | PASS |
-| Legacy `background-size: contain` (Fault A) not active for premium | Fault A lives in shell.css `.wallpaperImage`; unreachable on premium path | PASS |
-| AppShell `/w99.png` not visible on premium pages | Covered by `.premiumSurface` z-index:4 | PASS |
-| TopNav preserved and visible above premium stage | nav.css z-index:50 > premiumSurface z-index:4 | PASS |
+| Rule | Type | Reason removed |
+|------|------|----------------|
+| `.premiumSurface` | Fixed surface, `top: nav-h`, z-index 4 | Replaced by `dpv1ReceiverMount` in receiver |
+| `.premiumSurface > .dpv1Viewport` | Inset absolute fill | Replaced by `dpv1ReceiverMount > .dpv1Viewport` |
+| `@media premiumSurface` (mobile) | Mobile height override | Replaced in `dpv1ReceiverMount` media block |
+| `.publishedOverlayRoot` | Absolute, z-index 2 | Legacy overlay system, unreferenced |
+| `.publishedOverlaySkin` | Absolute, z-index 0 | Legacy overlay system, unreferenced |
+| `.publishedOverlayGif` | Absolute, z-index 3, screen blend | Legacy overlay system, unreferenced |
+| `.publishedOverlayStage` | 1400px centered, padding-top nav-h | Legacy overlay system, unreferenced |
+| `.publishedOverlayCard` | Absolute, border-radius | Legacy overlay system, unreferenced |
+| `.publishedOverlayCardInner` | Flex layout | Legacy overlay system, unreferenced |
+| `.publishedOverlayBadge` | Absolute, top-right badge | Legacy overlay system, unreferenced |
+| `.publishedOverlayTitle` | Typography | Legacy overlay system, unreferenced |
+| `.publishedOverlayBody` | Typography | Legacy overlay system, unreferenced |
+| `.publishedOverlayLine` | Typography | Legacy overlay system, unreferenced |
+| `.publishedOverlayCardMedia` | Background | Legacy overlay system, unreferenced |
+| `.overlayMediaFrame` | Absolute inset | Legacy overlay system, unreferenced |
+| `.overlayMediaImage/.overlayMediaVideo/.overlayMediaEmbed` | Media display | Legacy overlay system, unreferenced |
+
+`.exclusiveTile*` CSS classes were retained (tier-2 exclusive page styles).
+
+---
+
+## 5. Non-Premium Routes Confirmed Untouched
+
+- All `/:slug/gate/*` and `/:designation/:slug/*` page routes: unchanged
+- `ExclusivePage`, `MembersPage`, `CustomerPage`, `AdminPage`, `PayMePage`,
+  `EngagePage`, `ReferralsPage`, `SkinMarketplacePage`: unchanged
+- `AppShell` (TopNav, PayMePanel, PayMeCartProvider): unchanged
+- `StudioPage` (edit + preview): unchanged
+
+---
+
+## 6. Files Changed in S2
+
+| File | Change |
+|------|--------|
+| `apps/product-shell/src/features/desktop-premium/DesktopPremiumReceiver.tsx` | Added `asMount` prop; conditional mount vs. viewport rendering |
+| `apps/product-shell/src/components/layout/PageShell.tsx` | Removed `premiumSurface` wrapper; passes `asMount` to receiver |
+| `apps/product-shell/src/features/desktop-premium/desktop-premium.css` | Added `dpv1ReceiverMount` + mobile override CSS |
+| `apps/product-shell/src/styles/published-overlay.css` | Removed `premiumSurface` + `publishedOverlay*` legacy CSS |
+| `apps/product-shell/src/features/desktop-premium/DesktopPremiumShell.tsx` | No change — confirmed correct |
+| `apps/product-shell/src/pages/StudioPage.tsx` | No change — studio unaffected by asMount path |
