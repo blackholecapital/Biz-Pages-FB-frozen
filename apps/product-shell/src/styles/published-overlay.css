@@ -1,3 +1,37 @@
+/* ── Premium Surface (desktop-premium-v1 receiver mount) ──
+ *
+ * Single full-bleed mount for the canonical premium receiver. Replaces the
+ * legacy PageShell wallpaper+content frame when `PageShell` dispatches on a
+ * premium payload. Sits below the top nav (nav-h) and above the AppShell
+ * default wallpaper, filling the remainder of the viewport so the premium
+ * shell's own 2560×1440 stage can be scaled to fit the full envelope
+ * without competing wallpaper or padding layers. */
+.premiumSurface{
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: var(--nav-h, 72px);
+  bottom: 0;
+  z-index: 4;               /* above appRootWallpaper (-1) and appBody content (3) */
+  overflow: hidden;
+  background: #0b0b0f;      /* matches dpv1Viewport base so letterbox bands blend */
+  pointer-events: auto;
+}
+.premiumSurface > .dpv1Viewport{
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+/* On mobile, use dynamic viewport height to survive URL-bar collapse. */
+@media (max-width: 900px){
+  .premiumSurface{
+    top: var(--nav-h, 72px);
+    height: calc(100dvh - var(--nav-h, 72px));
+    bottom: auto;
+  }
+}
+
 .publishedOverlayRoot{
   position: absolute;
   inset: 0;
