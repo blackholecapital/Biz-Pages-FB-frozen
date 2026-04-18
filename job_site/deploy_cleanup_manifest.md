@@ -176,3 +176,111 @@ did not run. Escalate to the module deploy gate — see
 - [x] No dashboard-held state is changed by this stage.
 - [x] Admin mini-apps are marked EXCLUDED from shell production in
       `module_deploy_gate_spec.md`.
+
+---
+
+## 8. S5.3 fix — infinite-loop discard by Cloudflare Pages
+
+job_id: BIZ-PAGES-PROD-DETANGLE-002
+stage: S5.3
+worker: Worker B
+checkpoint: CP-S5-REDIRECTS-NOLOOP
+expected_status: PASS
+
+### 8.1 Defect observed post-S4
+
+After S4's cleanup (§2), the file at `apps/product-shell/public/_redirects`
+still contained three splat-to-child rules whose destinations are themselves
+matched by their source patterns:
+
+```
+/apps/payme/*    /apps/payme/index.html    200
+/apps/engage/*   /apps/engage/index.html   200
+/*               /index.html               200
+```
+
+- `/apps/payme/index.html` is captured by `/apps/payme/*`.
+- `/apps/engage/index.html` is captured by `/apps/engage/*`.
+- `/index.html` is captured by `/*`.
+
+Cloudflare Pages' redirect parser classifies each of those as a
+self-referential rewrite (the rewrite target re-matches the rule's own
+pattern), flags the file as containing an infinite redirect, and discards
+the entire rule set. The deploy completes with a "success" status but the
+routing layer is non-functional: requests either 404 or return bare assets
+with no SPA shell. This was surfaced by the cutover deploy logs reviewed
+at CP-S5-REDIRECTS-NOLOOP.
+
+### 8.2 Fix applied
+
+The S5.3 revision of `apps/product-shell/public/_redirects` removes all
+three loop-flagged rules and replaces the routing layer with Cloudflare's
+native static asset resolution. The file now contains only header
+comments — no active rewrite rules. This is valid for Cloudflare Pages
+(`_redirects` may be empty or comments-only) and is accepted by the
+deploy parser without loop-discard.
+
+| Request path                | Served from (physical file)                           |
+|-----------------------------|-------------------------------------------------------|
+| `/`, `/index.html`          | `dist/index.html` (product-shell Vite build)          |
+| `/apps/payme/`              | `public/apps/payme/index.html` (directory index)      |
+| `/apps/payme/index.html`    | `public/apps/payme/index.html` (exact)                |
+| `/apps/payme/assets/*`      | `public/apps/payme/assets/*` (exact)                  |
+| `/apps/engage/`             | `public/apps/engage/index.html` (directory index)     |
+| `/apps/engage/index.html`   | `public/apps/engage/index.html` (exact)               |
+| `/apps/engage/assets/*`     | `public/apps/engage/assets/*` (exact)                 |
+| `/biz-pages.png`, `/w9*.png`| `public/*` (exact)                                    |
+| `/api/*`                    | Pages Functions (`functions/api/*`)                    |
+
+The iframe mount contract stated in S5.3 — "Ensure iframe apps still
+resolve correctly under `/apps/{name}/`" — is satisfied by directory-index
+static resolution. When the GATED build produces
+`apps/product-shell/public/apps/{payme,engage}/index.html`
+(see `module_deploy_gate_spec.md` §2 rows 2–3), Cloudflare serves those
+files for iframe mount navigation without any rewrite rule.
+
+### 8.3 Deliberate non-inclusions
+
+1. No product-shell SPA splat catch-all (`/* → /index.html`). The
+   product-shell React Router uses `createBrowserRouter` with dynamic
+   segments (`:slug`, `:designation/:slug`, `:slug/gate`, ...). Hard-refresh
+   deep-link recovery for those dynamic paths is deferred to an S6 Pages
+   Function (`apps/product-shell/functions/[[catchall]].ts`) where a
+   programmatic rewrite can inspect the URL without being subject to
+   `_redirects` loop detection. Re-introducing a splat catch-all in
+   `_redirects` would reintroduce the loop-discard symptom that S5.3 fixes.
+2. No `/apps/payme/*` and `/apps/engage/*` rewrites. Iframe apps at those
+   paths are resolved via physical index.html + directory index.
+   Iframe-internal `BrowserRouter` deep-link refresh is handled
+   client-side on iframe reload at its base path.
+3. No rules for `/apps/referrals/*` or `/apps/vault/*`. Those modules
+   remain EXCLUDED per §2.1 and §2.2.
+
+### 8.4 Invariant for future edits
+
+Any rule added to `apps/product-shell/public/_redirects` MUST satisfy:
+**the destination path MUST NOT be matched by the source pattern.**
+Violating this invariant returns the project to the loop-discard state
+documented in §8.1.
+
+### 8.5 Post-fix verification
+
+| Probe                                          | Expected result                                                                 |
+|------------------------------------------------|---------------------------------------------------------------------------------|
+| Cloudflare Pages deploy log                    | No "ignored redirect rule" warning; no "infinite redirect" flag.                |
+| `curl -I https://<host>/`                      | 200, HTML from product-shell `dist/index.html`.                                  |
+| `curl -I https://<host>/apps/payme/`           | 200, HTML from `public/apps/payme/index.html` (iframe SPA).                     |
+| `curl -I https://<host>/apps/engage/`          | 200, HTML from `public/apps/engage/index.html` (iframe SPA).                    |
+| `curl -I https://<host>/apps/payme/assets/...` | 200 asset served with correct Content-Type.                                      |
+| `curl -I https://<host>/api/published-page?slug=demo&page=tier-2` | 200 JSON or explicit 4xx/5xx from Pages Function.             |
+
+### 8.6 Exit criteria (S5.3 pass-condition)
+
+- [x] `apps/product-shell/public/_redirects` contains zero rules whose
+      destination path is matched by the rule's own source pattern.
+- [x] Iframe apps at `/apps/{name}/` resolve via static directory index
+      (no splat rewrite needed).
+- [x] The file is minimal and valid for Cloudflare Pages (comments-only
+      accepted; parser raises no infinite-redirect flag).
+- [x] Dynamic SPA deep-link recovery is explicitly deferred to S6 Pages
+      Functions with a rationale recorded in §8.3.
