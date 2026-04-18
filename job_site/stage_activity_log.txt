@@ -534,3 +534,21 @@ timestamp: 2026-04-18
 worker: Worker B / S2 PATCH-A
 action: WRITE deterministic checksum artifact
 result: Created /job_site/premium_cutover_checksum.md with PASS checklist and sha256 ledger for HomePage.tsx, PageShell.tsx, runtime/types.ts, and router.tsx confirming premium cutover exclusivity and preserved non-premium behavior.
+
+[ENTRY 053]
+timestamp: 2026-04-18
+worker: Worker B / S2 PATCH-B
+action: TRIAGE FAIL evidence from premium slug route screenshot
+result: Confirmed visible `Welcome Home` indicates HomePage premium gate not reached for slug root. Root cause isolated to HomePage fetching only `page=home` while known premium fixture (`acme-premium`) is keyed on `page=tier-2`.
+
+[ENTRY 054]
+timestamp: 2026-04-18
+worker: Worker B / S2 PATCH-B
+action: PATCH HomePage premium fallback probe
+result: Updated apps/product-shell/src/pages/HomePage.tsx to fetch `home`, then probe `tier-2` only when `home` payload is non-premium; promotes payload only when `isPremiumRuntimePage(tier-2)` is true. Non-premium route behavior preserved.
+
+[ENTRY 055]
+timestamp: 2026-04-18
+worker: Worker B / S2 PATCH-B
+action: VERIFY build + checksum refresh + artifacts
+result: `npm --prefix apps/product-shell run build:shell` PASS. typecheck remains baseline-failing due pre-existing test typing issues. Updated premium_surface_ownership and premium_cutover_checksum with PATCH-B root cause/fix, and refreshed HomePage sha256 ledger.

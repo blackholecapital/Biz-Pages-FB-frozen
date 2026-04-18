@@ -335,3 +335,29 @@ the original ≈64 px nav-bar dilation to creep back:
 ### Worker-B validation disposition
 - expected_status: **PASS**
 - scope-owned verdict: **PASS**
+
+---
+
+## S2 Patch-B Repair Addendum (Worker B)
+
+`[BIZ-PAGES-WALLPAPER-HOTFIX-003-PATCH-B | WORKER B | S2 | RESULT]`
+
+### Root cause of FAIL
+- `HomePage` fetched only `page=home` for slug routes.
+- Known premium fixture (`acme-premium`) is published on `page=tier-2`.
+- Result: premium contract was not loaded on slug home route, so `.homeHero` + `Welcome Home` still rendered.
+
+### Minimal repair applied
+- Updated `HomePage` runtime fetch flow:
+  1. Fetch `home` first (preserved default behavior).
+  2. If `home` payload is non-premium, fetch `tier-2`.
+  3. Promote `tier-2` payload only when it satisfies `isPremiumRuntimePage`.
+- This preserves non-premium routes while ensuring premium slugs published on `tier-2` cut over to the premium receiver path.
+
+### Post-fix ownership result
+- Premium slug route (`/:slug`) now resolves to premium runtime payload when available on `tier-2`.
+- For promoted premium payloads:
+  - `HomePage` children remain `null`.
+  - `PageShell` premium early-return remains exclusive.
+  - No `Welcome Home` / `.homeHero` / legacy shell content on premium runtime routes.
+- Non-premium behavior remains unchanged when neither `home` nor `tier-2` is premium.

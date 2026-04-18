@@ -49,7 +49,7 @@
 ## File hash ledger (sha256)
 
 ```
-c9bfbd47256e9ad301bd9d3ec2b9aa5977f803618038d39b89c1762695629d1d  apps/product-shell/src/pages/HomePage.tsx
+03258064f99975b7f3b9f6972db50a184fce2cd619281b9545f0b9a19d1377cb  apps/product-shell/src/pages/HomePage.tsx
 dd30052d84a73bc7743610d59d08b6337b41c83142d53d5294fb822592388e4e  apps/product-shell/src/components/layout/PageShell.tsx
 5858af7581665339eea4748e13828520ccc525117d45dba8034a6d9c04c32dd4  apps/product-shell/src/runtime/types.ts
 a4bd278aa23728f454fa4ba7cb5aa2100b3a47b616c866fedc895743b01004a7  apps/product-shell/src/app/router.tsx
@@ -57,3 +57,8 @@ a4bd278aa23728f454fa4ba7cb5aa2100b3a47b616c866fedc895743b01004a7  apps/product-s
 
 ## Final assertion
 Premium runtime routes now resolve to premium receiver ownership only; `Welcome Home`/homeHero and legacy shell content are excluded for premium payloads, while non-premium behavior remains intact.
+
+## Patch-B repair note (2026-04-18)
+- FAIL root cause was confirmed as route-home fetch scope (`page=home` only) while tested premium fixture is keyed on `page=tier-2`.
+- Home route runtime fetch now performs premium fallback probe to `tier-2` and promotes only premium payloads.
+- This closes the observed `Welcome Home` regression on premium slug routes without changing non-premium ownership.
