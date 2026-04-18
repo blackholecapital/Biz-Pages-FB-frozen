@@ -211,3 +211,79 @@ unchanged. Stage coordinates (2560×1440) are consumed verbatim.
 |------|--------|
 | `apps/product-shell/src/features/desktop-premium/DesktopPremiumReceiver.tsx` | Inline `style={{ width:"100vw",height:"100vh" }}` on mount div in asMount branch |
 | `apps/product-shell/src/features/desktop-premium/desktop-premium.css` | `dpv1ReceiverMount`: explicit vw/vh + max-width/height; `dpv1ReceiverMount > .dpv1Viewport`: explicit w/h; `dpv1TileMedia`: `max-width:none; max-height:none` |
+
+---
+
+## S5 Addendum: Receiver Owns Full Published Viewport (no nav-bar dilation)
+
+### S5.1 Problem the addendum closes
+
+After S2 + S3 the `dpv1ReceiverMount` CSS already declared
+`position: fixed; inset: 0; width: 100vw; height: 100vh`. Operationally
+this works in every cascade we have audited. Two surfaces still allowed
+the original ≈64 px nav-bar dilation to creep back:
+
+1. **Doc/proof regression risk.** `premium_fullscreen_proof.md §10`
+   characterised the container as `window.innerHeight − 72` (a stale
+   pre-receiver-ownership characterisation). Any reader following the
+   proof would conclude that the 64 px side bands were intentional.
+2. **Code regression risk.** `useStageScale` measured only
+   `containerRef.clientWidth/Height`. If any future refactor wrapped the
+   receiver in a `top: var(--nav-h)` ancestor (or the receiver mount lost
+   its `inset: 0` declaration in a CSS rebuild), the hook would silently
+   re-introduce the dilation — no test would fail, no proof would update.
+
+### S5.2 Code-level reinforcement
+
+| File | Reinforcement |
+|------|---------------|
+| `useStageScale.ts` | New `UseStageScaleOptions.fullPublishedViewport` flag. When set, the hook also samples `window.innerWidth/innerHeight` and uses the larger of (container axis, viewport axis) per axis. A `window.resize` listener is wired so viewport changes that don't trigger the container ResizeObserver still update the scale. |
+| `DesktopPremiumReceiver.tsx` | Receiver passes `{ fullPublishedViewport: !!asMount }` to `useStageScale`, so the published-premium path always opts in and the Studio path always opts out. Inline `top: 0; left: 0` added to mount div as belt-and-suspenders against any inherited `top: var(--nav-h)` cascade. New `data-premium-surface="full-viewport"` attribute lets test harnesses assert ownership at the DOM level. |
+| `DesktopPremiumShell.tsx` | Doc-only: surface ownership invariant clarified. Render math unchanged. |
+| `PageShell.tsx` | Doc-only: premium branch comment now explicitly states no top-offset wrapper, no `.pageShell` / `.wallpaperLayer` chrome for the published-premium path. |
+| `components/layout/AppShell.tsx` | New file — layout-tier proxy that re-exports the canonical AppShell from `app/AppShell.tsx`. Documents preserved (non-premium) behavior and surface ownership for premium-published. The canonical app-tier AppShell is unchanged so the imports in `app/router.tsx` continue to work and the non-premium nav/cart/wallpaper behavior is preserved verbatim. |
+
+### S5.3 Surface ownership table (post-S5)
+
+| Surface | Owner | Path | CSS | Observed dim on 1366×768 |
+|---------|-------|------|-----|--------------------------|
+| Default app wallpaper `/w99.png` | AppShell | All routes | `.appRootWallpaper { position: fixed; inset: 0; z-index: -1 }` | Fully occluded on premium-published; visible on every other route |
+| TopNav | AppShell | All routes | `.topNav { z-index: 50 }` | Floats above the receiver mount on premium-published; unchanged elsewhere |
+| PayMePanel side cart | AppShell | All routes | fixed | Unchanged for every route |
+| Premium receiver mount | DesktopPremiumReceiver | Premium-published only | `.dpv1ReceiverMount { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 4 }` | 1366 × 768 |
+| Premium scale container | useStageScale (`fullPublishedViewport`) | Premium-published only | derived from receiver mount | 1366 × 768 |
+| Stage (2560×1440 transform-scaled) | DesktopPremiumShell | Premium-published only | `.dpv1Stage { transform: scale(...); }` | scale ≈ 0.5333; ≈ 1365.33 × 768 with ≈ 0.33 px X-letterbox |
+
+### S5.4 Removed AppShell/HomePage inheritance for premium-published
+
+| Inherited behavior (pre-fix) | Post-fix status |
+|------------------------------|-----------------|
+| AppShell `/w99.png` visible behind premium stage | OCCLUDED — receiver mount z-index 4 fully covers z-index -1 wallpaper layer |
+| HomePage `<div className="homeHero">` rendered above premium wallpaper | NOT RENDERED — `PageShell` returns the receiver before reaching `children` |
+| `--nav-h` (72 px) subtracted from premium scale container | NOT SUBTRACTED — receiver mount is `inset: 0`, scale container is full viewport |
+| `.pageShell` legacy frame wrapping the receiver | NOT WRAPPED — `PageShell.tsx:61` returns the receiver before reaching `.pageShell` |
+
+### S5.5 Files changed in S5
+
+| File | Change |
+|------|--------|
+| `apps/product-shell/src/features/desktop-premium/useStageScale.ts` | `UseStageScaleOptions.fullPublishedViewport` flag, viewport sampling, window resize listener |
+| `apps/product-shell/src/features/desktop-premium/DesktopPremiumReceiver.tsx` | Pass `fullPublishedViewport: !!asMount` to hook; inline `top:0; left:0`; `data-premium-surface="full-viewport"` |
+| `apps/product-shell/src/features/desktop-premium/DesktopPremiumShell.tsx` | Doc-only |
+| `apps/product-shell/src/components/layout/PageShell.tsx` | Doc-only |
+| `apps/product-shell/src/components/layout/AppShell.tsx` | New layout-tier proxy file |
+
+### S5.6 Files NOT changed (preserved surfaces)
+
+| File | Why preserved |
+|------|---------------|
+| `apps/product-shell/src/app/AppShell.tsx` | Canonical AppShell — non-premium nav, side cart, default wallpaper layer all unchanged |
+| `apps/product-shell/src/components/nav/TopNav.tsx` | TopNav unchanged for all routes |
+| `apps/product-shell/src/components/layout/PayMePanel.tsx` | Side cart unchanged for all routes |
+| `apps/product-shell/src/styles/shell.css` | Legacy non-premium classes unchanged |
+| `apps/product-shell/src/styles/published-overlay.css` | Tier-2 `.exclusiveTile*` classes unchanged |
+| `apps/product-shell/src/features/desktop-premium/desktop-premium.css` | `.dpv1ReceiverMount` already declared full viewport from S2/S3 |
+| `apps/product-shell/src/pages/StudioPage.tsx` | Studio mounts receiver without `asMount`; `fullPublishedViewport` stays false |
+| `apps/product-shell/functions/_lib/runtime-compiler.js` | Premium compile branch unchanged |
+| `apps/product-shell/src/runtime/types.ts` | `isPremiumRuntimePage` / `adaptPremiumRuntimePage` unchanged |
+| `apps/product-shell/src/tests/premium-renderer-parity.test.ts` | All A/B/C tests still pass — formula and stage envelope unchanged |

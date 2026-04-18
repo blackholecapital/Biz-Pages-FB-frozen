@@ -35,6 +35,14 @@ type DesktopPremiumShellProps = {
  * only for header/rail/workspace chrome positions that are fixed by the
  * shell contract (header height, rail widths, workspace band), not for the
  * stage envelope.
+ *
+ * **Surface ownership invariant (BIZ-PAGES-WALLPAPER-HOTFIX-003 S5):**
+ * `scale`, `stageOffsetX`, and `stageOffsetY` are derived by
+ * `useStageScale` from the receiver's owning surface. For the published
+ * premium path that surface is the full viewport (`dpv1ReceiverMount`,
+ * 100vw × 100vh) — so this shell never has to know about, or compensate
+ * for, the AppShell nav-bar height. The stage envelope and offsets are
+ * already pre-baked against the full surface.
  */
 export function DesktopPremiumShell({
   scaleState,
